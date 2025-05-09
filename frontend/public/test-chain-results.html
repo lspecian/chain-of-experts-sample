@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chain Results Viewer Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f7fa;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      color: #333;
+      margin-top: 0;
+    }
+    .test-controls {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f0f4f8;
+      border-radius: 6px;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #0366d6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    button:hover {
+      background-color: #0256b9;
+    }
+    .toggle-switch {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 20px;
+    }
+    .toggle-switch label {
+      margin-right: 8px;
+    }
+    #results-container {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Chain Results Viewer Test</h1>
+    
+    <div class="test-controls">
+      <button id="load-test-data">Load Test Data</button>
+      <button id="clear-results">Clear Results</button>
+      <div class="toggle-switch">
+        <label for="dark-mode">Dark Mode:</label>
+        <input type="checkbox" id="dark-mode">
+      </div>
+    </div>
+    
+    <div id="results-container"></div>
+  </div>
+
+  <script>
+    // Mock data for testing
+    const mockChainResult = {
+      summary: "This is a test summary of the chain results",
+      intermediateResults: [
+        {
+          expertName: "data-retrieval",
+          expertType: "Retrieval",
+          expertIndex: 0,
+          input: { query: "test query" },
+          output: { documents: ["doc1", "doc2"] },
+          timestamp: new Date().toISOString(),
+          durationMs: 150
+        },
+        {
+          expertName: "llm-summarization",
+          expertType: "Summarization",
+          expertIndex: 1,
+          input: { documents: ["doc1", "doc2"] },
+          output: { summary: "This is a test summary" },
+          timestamp: new Date().toISOString(),
+          durationMs: 250
+        }
+      ],
+      tokenUsage: {
+        total: 1500,
+        prompt: 1000,
+        completion: 500,
+        provider: "OpenAI",
+        model: "gpt-4"
+      },
+      traceId: "test-trace-id-123",
+      durationMs: 400,
+      success: true
+    };
+
+    // Function to load test data
+    document.getElementById('load-test-data').addEventListener('click', () => {
+      const resultsContainer = document.getElementById('results-container');
+      const darkMode = document.getElementById('dark-mode').checked;
+      
+      // Create a message element
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message assistant-message';
+      
+      // Create the message content div
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'message-content';
+      
+      // Create a new ChainResultsViewer instance
+      const chainResultsViewer = document.createElement('div');
+      chainResultsViewer.className = `chain-results-viewer ${darkMode ? 'dark' : 'light'}`;
+      chainResultsViewer.setAttribute('data-testid', 'chain-results-viewer');
+      
+      // Add the mock data as a data attribute
+      chainResultsViewer.setAttribute('data-result', JSON.stringify(mockChainResult));
+      
+      // Add some basic styling to simulate the component
+      chainResultsViewer.innerHTML = `
+        <div class="result-tabs">
+          <button class="tab-button active">Summary</button>
+          <button class="tab-button">Expert Details</button>
+          <button class="tab-button">Raw JSON</button>
+        </div>
+        <div class="tab-content">
+          <div class="summary-tab">
+            <div class="result-summary">
+              <h3>Result</h3>
+              <div class="summary-content">
+                <p>${mockChainResult.summary}</p>
+              </div>
+            </div>
+            <div class="result-metadata">
+              <div class="metadata-item">
+                <span class="metadata-label">Processing Time:</span>
+                <span class="metadata-value">${mockChainResult.durationMs}ms</span>
+              </div>
+              <div class="metadata-item">
+                <span class="metadata-label">Trace ID:</span>
+                <span class="metadata-value trace-id">${mockChainResult.traceId}</span>
+              </div>
+              <div class="metadata-item">
+                <span class="metadata-label">Token Usage:</span>
+                <span class="metadata-value">${mockChainResult.tokenUsage.total} tokens</span>
+              </div>
+            </div>
+            <div class="visual-chain-flow">
+              <h3>Expert Chain Flow</h3>
+              <div class="chain-flow-diagram">
+                ${mockChainResult.intermediateResults.map((expert, index) => `
+                  <div class="expert-node">
+                    <div class="node-icon">✓</div>
+                    <div class="node-name">${expert.expertName}</div>
+                    <div class="node-type">${expert.expertType}</div>
+                    <div class="node-time">${expert.durationMs}ms</div>
+                  </div>
+                  ${index < mockChainResult.intermediateResults.length - 1 ? `
+                    <div class="connector">
+                      <div class="arrow">→</div>
+                    </div>
+                  ` : ''}
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Append the chain results viewer to the content div
+      contentDiv.appendChild(chainResultsViewer);
+      
+      // Append the content div to the message div
+      messageDiv.appendChild(contentDiv);
+      
+      // Add a timestamp
+      const timestampDiv = document.createElement('div');
+      timestampDiv.className = 'message-timestamp';
+      timestampDiv.textContent = new Date().toLocaleTimeString();
+      messageDiv.appendChild(timestampDiv);
+      
+      // Append the message div to the results container
+      resultsContainer.appendChild(messageDiv);
+      
+      // Add event listeners to tabs
+      const tabs = chainResultsViewer.querySelectorAll('.tab-button');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          // Remove active class from all tabs
+          tabs.forEach(t => t.classList.remove('active'));
+          // Add active class to clicked tab
+          tab.classList.add('active');
+          
+          // For a real implementation, we would switch the content here
+          // But for this test, we'll just show an alert
+          alert(`Clicked on ${tab.textContent} tab`);
+        });
+      });
+    });
+    
+    // Function to clear results
+    document.getElementById('clear-results').addEventListener('click', () => {
+      document.getElementById('results-container').innerHTML = '';
+    });
+    
+    // Toggle dark mode
+    document.getElementById('dark-mode').addEventListener('change', (e) => {
+      const darkMode = e.target.checked;
+      const chainResultsViewers = document.querySelectorAll('.chain-results-viewer');
+      
+      chainResultsViewers.forEach(viewer => {
+        if (darkMode) {
+          viewer.classList.add('dark');
+          viewer.classList.remove('light');
+        } else {
+          viewer.classList.add('light');
+          viewer.classList.remove('dark');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -99,6 +99,18 @@ function App() {
       timestamp: new Date().toISOString()
     }
   ]);
+
+  useEffect(() => {
+    const handleAddMessage = (event: CustomEvent<ChatMessage>) => {
+      setMessages(prev => [...prev, event.detail]);
+    };
+
+    window.addEventListener('add-message', handleAddMessage as EventListener);
+
+    return () => {
+      window.removeEventListener('add-message', handleAddMessage as EventListener);
+    };
+  }, []);
   
   // API Response State
   const [loading, setLoading] = useState<boolean>(false);
