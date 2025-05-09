@@ -1,0 +1,93 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+
+# Dependency directories
+node_modules/
+
+# Environment variables
+.env
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS specific
+.DS_Store
+
+# Task files
+tasks.json
+tasks/
+
+# Build output
+dist/
+build/
+out/
+.next/
+
+# Test and coverage
+coverage/
+test-results/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terragrunt-cache/
+.terraform.lock.hcl
+
+# Temporary files
+*.swp
+*.swo
+.tmp/
+temp/
+
+# Docker
+docker-volumes/
+*.env.local
+
+# Database
+chroma-data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Frontend
+.cache/
+public/dist/
+storybook-static/
+
+# IDE specific
+.history/
+*.sublime-*
+.project
+.classpath
+.settings/
+
+# Roo/Cursor specific
+.roo/
+.cursor/
+.roomodes
+.windsurfrules
+
+.roo
+.cursor

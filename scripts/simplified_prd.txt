@@ -1,0 +1,34 @@
+Deploying and Monitoring Scalable "Chain of Experts" LLM Applications Across Multi-Cloud Environments with Terraform and Langfuse
+
+Project Overview:
+Create a TypeScript application that implements a "Chain of Experts" (CoE) pattern for LLM applications, with deployment infrastructure using Terraform for multi-cloud environments (AWS, Azure, GCP) and observability using Langfuse.
+
+Key Requirements:
+
+1. TypeScript Application
+- Implement a Chain of Experts pattern where multiple specialized LLM components work sequentially
+- Create a modular architecture that allows for easy addition/replacement of expert components
+- Implement proper error handling and context passing between experts
+- Support both containerized and serverless deployment options
+
+2. Multi-Cloud Terraform Infrastructure
+- Create a well-organized Terraform project structure with modules, environments, and provider configurations
+- Implement infrastructure for AWS (ECS/Fargate), Azure (App Service for Containers), and GCP (Cloud Run)
+- Set up networking, container registries, compute resources, and load balancing
+- Implement remote state management and secure secrets handling
+- Create a Dockerfile for containerizing the TypeScript application
+
+3. Langfuse Observability Integration
+- Integrate the Langfuse TypeScript SDK for tracing and monitoring
+- Implement proper instrumentation for each expert in the chain
+- Capture inputs, outputs, metadata, and performance metrics
+- Set up evaluation mechanisms using Langfuse's scoring system
+- Ensure compatibility with OpenTelemetry standards
+
+4. Documentation and Examples
+- Provide comprehensive documentation for the architecture and implementation
+- Include examples of adding new experts to the chain
+- Document deployment processes for each cloud provider
+- Create dashboards and monitoring examples in Langfuse
+
+The solution should be scalable, maintainable, and follow best practices for TypeScript, Terraform, and LLM application development.

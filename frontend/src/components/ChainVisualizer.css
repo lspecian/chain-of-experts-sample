@@ -1,0 +1,394 @@
+.chain-visualizer {
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.chain-visualizer h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: #333;
+}
+
+.chain-flow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.expert-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: #e9ecef;
+  border: 2px solid #ced4da;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.expert-node:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.node-icon {
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+.node-name {
+  font-size: 12px;
+  text-align: center;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.node-idle {
+  background-color: #e9ecef;
+  border-color: #ced4da;
+}
+
+.node-processing {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+  animation: pulse 1.5s infinite;
+}
+
+.node-completed {
+  background-color: #e8f5e9;
+  border-color: #4caf50;
+}
+
+.node-error {
+  background-color: #ffebee;
+  border-color: #f44336;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(33, 150, 243, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+  }
+}
+
+.connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 2px;
+  background-color: #ced4da;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.connector-active {
+  background-color: #2196f3;
+}
+
+.arrow {
+  position: absolute;
+  font-size: 20px;
+  color: #6c757d;
+}
+
+.connector-active .arrow {
+  color: #2196f3;
+}
+
+/* Data flow indicator */
+.data-flow-indicator {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.data-dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #2196f3;
+  animation: flowAnimation 1.5s infinite;
+}
+
+@keyframes flowAnimation {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
+}
+
+.expert-details {
+  background-color: #fff;
+  border-radius: 6px;
+  padding: 15px;
+  margin-top: 10px;
+  border: 1px solid #e9ecef;
+}
+
+.expert-details h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #333;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 8px;
+}
+
+.details-content {
+  font-size: 14px;
+}
+
+.expert-description {
+  margin-bottom: 15px;
+  color: #555;
+}
+
+/* IO Container and Panels */
+.io-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+@media (min-width: 768px) {
+  .io-container {
+    flex-direction: row;
+  }
+  
+  .io-panel {
+    flex: 1;
+  }
+}
+
+.io-panel {
+  margin-bottom: 15px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.io-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.io-header h5 {
+  margin: 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.io-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+.input-badge {
+  background-color: #e3f2fd;
+  color: #2196f3;
+}
+
+.output-badge {
+  background-color: #e8f5e9;
+  color: #4caf50;
+}
+
+.io-content {
+  background-color: #f5f5f5;
+  padding: 10px;
+  overflow-x: auto;
+  font-size: 12px;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Transformation Summary */
+.transformation-summary {
+  background-color: #fff3e0;
+  border-left: 3px solid #ff9800;
+  padding: 10px 15px;
+  margin-top: 15px;
+  border-radius: 4px;
+}
+
+.transformation-summary h5 {
+  margin-top: 0;
+  margin-bottom: 5px;
+  color: #e65100;
+  font-size: 14px;
+}
+
+.transformation-summary p {
+  margin: 0;
+  font-size: 13px;
+  color: #555;
+}
+
+/* Dark mode styles */
+.dark-mode .chain-visualizer {
+  background-color: #2d3748;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .chain-visualizer h3,
+.dark-mode .expert-details h4,
+.dark-mode .io-panel h5 {
+  color: #e2e8f0;
+}
+
+.dark-mode .chain-flow {
+  background-color: #1a202c;
+}
+
+.dark-mode .expert-node {
+  background-color: #2d3748;
+  border-color: #4a5568;
+}
+
+.dark-mode .node-processing {
+  background-color: #2c5282;
+  border-color: #4299e1;
+}
+
+.dark-mode .node-completed {
+  background-color: #276749;
+  border-color: #48bb78;
+}
+
+.dark-mode .node-error {
+  background-color: #9b2c2c;
+  border-color: #f56565;
+}
+
+.dark-mode .connector {
+  background-color: #4a5568;
+}
+
+.dark-mode .connector-active {
+  background-color: #4299e1;
+}
+
+.dark-mode .arrow {
+  color: #a0aec0;
+}
+
+.dark-mode .connector-active .arrow {
+  color: #4299e1;
+}
+
+.dark-mode .expert-details {
+  background-color: #1a202c;
+  border-color: #2d3748;
+}
+
+.dark-mode .expert-description {
+  color: #cbd5e0;
+}
+
+.dark-mode .io-panel {
+  border-color: #4a5568;
+}
+
+.dark-mode .io-header {
+  background-color: #2d3748;
+  border-color: #4a5568;
+}
+
+.dark-mode .io-content {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.dark-mode .input-badge {
+  background-color: #2c5282;
+  color: #90cdf4;
+}
+
+.dark-mode .output-badge {
+  background-color: #276749;
+  color: #9ae6b4;
+}
+
+.dark-mode .transformation-summary {
+  background-color: #3c2a1b;
+  border-left-color: #ed8936;
+}
+
+.dark-mode .transformation-summary h5 {
+  color: #ed8936;
+}
+
+.dark-mode .transformation-summary p {
+  color: #cbd5e0;
+}
+
+.dark-mode .data-dot {
+  background-color: #4299e1;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .chain-flow {
+    justify-content: flex-start;
+    padding: 10px 5px;
+  }
+  
+  .expert-node {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .node-icon {
+    font-size: 20px;
+  }
+  
+  .node-name {
+    font-size: 10px;
+  }
+  
+  .connector {
+    width: 20px;
+  }
+}

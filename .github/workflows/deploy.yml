@@ -1,0 +1,133 @@
+name: Build and Deploy CoE Application
+
+on:
+  push:
+    branches: [main] # Trigger on push to main
+  pull_request:
+    branches: [main] # Trigger on PR to main (build/test only)
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  build-and-test:
+    name: Build & Test Application
+    runs-on: ubuntu-latest
+    outputs:
+      image_sha_tag: ${{ github.sha }} # Output the SHA for image tagging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Use latest version
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm' # Cache npm dependencies
+
+      - name: Install dependencies
+        run: npm ci # Use ci for clean installs
+
+      - name: Run tests
+        run: npm test # Assumes 'test' script exists in package.json
+
+      - name: Build TypeScript
+        run: npm run build # Assumes 'build' script exists
+
+      - name: Build Docker image
+        id: docker_build
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          docker build -t coe-app:$IMAGE_TAG -t coe-app:latest .
+          echo "Built image coe-app:$IMAGE_TAG"
+
+      - name: Save Docker image artifact
+        run: |
+          mkdir -p artifacts
+          docker save coe-app:latest | gzip > artifacts/coe-app-image.tar.gz
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: artifacts/coe-app-image.tar.gz
+
+  # --- Deployment Jobs ---
+  # These jobs run only on push to main branch (not PRs)
+
+  deploy-aws:
+    name: Deploy to AWS
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production # Optional: Link to GitHub environment for secrets/approvals
+    permissions:
+      id-token: write # Needed for configure-aws-credentials using OIDC
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker image
+        run: gunzip -c coe-app-image.tar.gz | docker load
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_TO_ASSUME }} # Use OIDC Role ARN
+          aws-region: ${{ secrets.AWS_REGION }} # e.g., us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag and Push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          # Assumes ECR repo name matches pattern (adjust if needed)
+          ECR_REPOSITORY: ${{ vars.PROJECT_NAME || 'coe-app' }}-${{ vars.SERVICE_NAME || 'api' }}-${{ vars.ENVIRONMENT || 'prod' }} 
+          IMAGE_TAG: ${{ needs.build-and-test.outputs.image_sha_tag }}
+        run: |
+          docker tag coe-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag coe-app:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "Pushing $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "Pushing $ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3 # Use latest version
+        with:
+          terraform_wrapper: false # Recommended for CI
+
+      - name: Terraform Init (Prod Env)
+        id: init
+        run: terraform init
+        working-directory: ./environments/prod # Assumes prod deploys AWS
+
+      - name: Terraform Plan (Prod Env)
+        id: plan
+        run: terraform plan -no-color -var="container_image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" -var="langfuse_public_key=${{ secrets.LANGFUSE_PUBLIC_KEY }}" -var="langfuse_baseurl=${{ secrets.LANGFUSE_BASEURL }}" # Add other required vars
+        working-directory: ./environments/prod
+        continue-on-error: true # Allow plan to fail without stopping workflow (for PR checks)
+
+      - name: Terraform Apply (Prod Env)
+        if: steps.plan.outcome == 'success' # Only apply if plan succeeds
+        run: terraform apply -auto-approve -var="container_image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" -var="langfuse_public_key=${{ secrets.LANGFUSE_PUBLIC_KEY }}" -var="langfuse_baseurl=${{ secrets.LANGFUSE_BASEURL }}" # Add other required vars
+        working-directory: ./environments/prod
+        env:
+           # Pass sensitive vars like secret key via TF_VAR env var if needed and not using Secrets Manager directly in TF
+           TF_VAR_langfuse_secret_key: ${{ secrets.LANGFUSE_SECRET_KEY }} 
+
+  # TODO: Add deploy-azure and deploy-gcp jobs similarly
+  # These would need adjustments to:
+  # - Use Azure/GCP credential actions
+  # - Log in to ACR/Artifact Registry
+  # - Push images to ACR/Artifact Registry
+  # - Run terraform init/apply potentially in different working directories or with different target files/workspaces
+  #   if the environment configuration is split per cloud.
