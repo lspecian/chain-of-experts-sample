@@ -11,6 +11,7 @@ export { default as TokenUsageDisplay } from './TokenUsageDisplay';
 export { default as RawResponseView } from './RawResponseView';
 export { default as LoadingState } from './LoadingState';
 export { default as ErrorDisplay } from './ErrorDisplay';
+export { default as CopyButton } from './CopyButton'; // Add this line
 
 // Re-export the main component
 export { default } from '../ChainResultsViewer';

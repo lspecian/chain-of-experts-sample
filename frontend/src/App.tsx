@@ -66,12 +66,23 @@ interface StreamErrorEvent {
 type StreamEvent = StreamInitEvent | StreamIntermediateEvent | StreamFinalEvent | StreamErrorEvent;
 */
 
+// Define token usage type
+interface TokenUsage {
+  prompt: number;
+  completion: number;
+  total: number;
+  provider?: string;
+  model?: string;
+}
+
 interface ChainApiOutput {
   result: ApiResult;
   intermediateResults?: IntermediateResult[];
   traceId?: string;
   success: boolean;
   error?: string;
+  durationMs?: number;
+  tokenUsage?: TokenUsage;
 }
 
 // Define message types for the chat interface
@@ -129,8 +140,28 @@ function App() {
   }>>({});
   
   // UI State
-  const [sidebarVisible, setSidebarVisible] = useState<boolean>(true);
-  const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [sidebarVisible, setSidebarVisible] = useState<boolean>(window.innerWidth > 768);
+  const [darkMode, setDarkMode] = useState<boolean>(true);
+  
+  // Effect to handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        setSidebarVisible(false);
+      }
+    };
+    
+    // Set initial state
+    handleResize();
+    
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
   const [showExpertManager, setShowExpertManager] = useState<boolean>(false);
   const [showChainVisualizer, setShowChainVisualizer] = useState<boolean>(true);
   const [streamingProgress, setStreamingProgress] = useState<number>(0);
@@ -253,31 +284,55 @@ function App() {
     initialExpertDetails: Record<string, { description?: string; input?: unknown; output?: unknown }>,
     currentQuery: string
   ) => {
-    const response = await fetch('/api/process', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(apiRequestBody),
-    });
-
-    // Check if response is ok before trying to parse JSON
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    // Try to parse the JSON response with error handling
-    let data: ChainApiOutput;
+    console.log("handleRegularRequest: Making API request to /api/process");
+    
+    let data: ChainApiOutput; // Declare data variable at the function scope
+    
     try {
-      data = await response.json();
-    } catch (jsonError) {
-      console.error("JSON parsing error:", jsonError);
-      throw new Error("Failed to parse API response as JSON. The server may be returning an invalid response.");
-    }
+      console.log("handleRegularRequest: About to make fetch request to /api/process");
+      console.log("handleRegularRequest: Request body:", JSON.stringify(apiRequestBody));
+      
+      let response;
+      try {
+        console.log("handleRegularRequest: Calling fetch...");
+        response = await fetch('/api/process', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(apiRequestBody),
+        });
+        
+        console.log("handleRegularRequest: Received response:", response.status, response.statusText);
+      } catch (fetchError) {
+        console.error("Fetch error:", fetchError);
+        throw fetchError;
+      }
 
-    // Check if the parsed data indicates success
-    if (!data.success) {
-      throw new Error(data.error || "API returned unsuccessful response");
+      // Check if response is ok before trying to parse JSON
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Try to parse the JSON response with error handling
+      try {
+        const responseText = await response.text();
+        console.log("Raw response text:", responseText);
+        data = JSON.parse(responseText) as ChainApiOutput;
+      } catch (jsonError) {
+        console.error("JSON parsing error:", jsonError);
+        throw new Error("Failed to parse API response as JSON. The server may be returning an invalid response.");
+      }
+
+      console.log("Parsed API response:", data);
+
+      // Check if the parsed data indicates success
+      if (!data.success) {
+        throw new Error(data.error || "API returned unsuccessful response");
+      }
+    } catch (error) {
+      console.error("Error in handleRegularRequest:", error);
+      throw error;
     }
 
     setResult(data.result);
@@ -295,9 +350,33 @@ function App() {
     // Use actual intermediate results from the backend if available
     const finalExpertDetails = { ...initialExpertDetails }; // Start from initial state
     
-    if (data.intermediateResults && data.intermediateResults.length > 0) {
+    // Log the full response data to debug
+    console.log("Full API response data:", data);
+    console.log("intermediateResults property exists:", Object.prototype.hasOwnProperty.call(data, 'intermediateResults'));
+    console.log("intermediateResults type:", data.intermediateResults ? typeof data.intermediateResults : 'undefined');
+    console.log("intermediateResults length:", data.intermediateResults ? data.intermediateResults.length : 0);
+    
+    // Add a message to indicate whether we're using real or simulated results
+    const usingRealResults = data.intermediateResults && data.intermediateResults.length > 0;
+    const intermediateResultsCount = data.intermediateResults?.length || 0;
+    
+    // Add a user message to show if we're using real or simulated results
+    const debugMessage: ChatMessage = {
+      id: `debug-${Date.now()}`,
+      content: usingRealResults
+        ? `Using REAL intermediate results (count: ${intermediateResultsCount})`
+        : "Using SIMULATED intermediate results",
+      role: 'system',
+      timestamp: new Date().toISOString()
+    };
+    
+    setMessages(prev => [...prev, debugMessage]);
+    
+    if (usingRealResults) {
       // Use actual intermediate results from the backend
-      data.intermediateResults.forEach((result) => {
+      console.log("Using actual intermediate results:", data.intermediateResults);
+      data.intermediateResults?.forEach((result) => {
+        console.log("Processing intermediate result for expert:", result.expertName);
         finalExpertDetails[result.expertName] = {
           ...finalExpertDetails[result.expertName],
           description: `${result.expertType} expert`,
@@ -305,21 +384,23 @@ function App() {
           output: result.output,
         };
       });
-      
-      console.log("Using actual intermediate results:", data.intermediateResults);
     } else {
       // Fallback to simulation if no intermediate results are available
       console.log("No intermediate results available, using simulation");
+      console.log("Selected experts for simulation:", selectedExperts);
       let currentVisualInput: unknown = { query: currentQuery };
       selectedExperts.forEach((expertName, index) => {
         let currentVisualOutput: unknown;
         // Simulate output based on position
         if (index === selectedExperts.length - 1) {
           currentVisualOutput = data.result; // Last expert's output is the final result
+          console.log(`Simulating final output for ${expertName}:`, currentVisualOutput);
         } else if (expertName === 'data-retrieval') {
           currentVisualOutput = { documents: ["Simulated document 1", "Simulated document 2"] };
+          console.log(`Simulating data-retrieval output:`, currentVisualOutput);
         } else {
           currentVisualOutput = { intermediateResult: `Output from ${expertName}` };
+          console.log(`Simulating generic output for ${expertName}:`, currentVisualOutput);
         }
         
         finalExpertDetails[expertName] = {
@@ -340,7 +421,16 @@ function App() {
       content: 'Chain of Experts Result',
       role: 'assistant',
       timestamp: new Date().toISOString(),
-      resultData: data.result // Store the result data for rendering with ChainResultsViewer
+      // Include the full result data with durationMs and tokenUsage
+      resultData: {
+        result: data.result,
+        durationMs: data.durationMs,
+        tokenUsage: data.tokenUsage,
+        traceId: data.traceId,
+        summary: typeof data.result === 'object' && data.result && 'summary' in data.result
+          ? (data.result as { summary: string }).summary
+          : undefined
+      }
     };
     
     setMessages(prev => [...prev, assistantMessage]);
@@ -348,12 +438,24 @@ function App() {
 
   // Main send message handler
   const handleSendMessage = async (event?: FormEvent) => {
+    // Add direct console.log statements
+    console.log("HANDLE SEND MESSAGE CALLED");
+    console.log("Query:", query);
+    console.log("Selected experts:", selectedExperts);
+    
     if (event) {
       event.preventDefault();
     }
 
-    if (!query.trim()) return;
+    if (!query.trim()) {
+      console.log("Query is empty, returning");
+      return;
+    }
+    
+    // Log every step of the process
+    console.log("Step 1: Adding user message to chat");
 
+    console.log("Step 1: Adding user message to chat");
     // Add user message to chat
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -362,12 +464,14 @@ function App() {
       timestamp: new Date().toISOString()
     };
     
+    console.log("User message:", userMessage);
     setMessages(prev => [...prev, userMessage]);
     
     // Clear input
     const currentQuery = query;
     setQuery('');
     
+    console.log("Step 2: Resetting state for new request");
     // Reset state for new request
     setLoading(true);
     setError(null);
@@ -391,6 +495,7 @@ function App() {
     setExpertDetails(initialExpertDetails);
 
     try {
+      console.log("Step 3: Preparing API request body");
       const apiRequestBody: ChainApiInput = {
         input: {
           type: 'query',
@@ -403,11 +508,15 @@ function App() {
         expertParameters: expertParameters
       };
 
+      console.log("API request body:", apiRequestBody);
+
       if (useStreaming) {
         // Use streaming endpoint
+        console.log("Step 4a: Using streaming endpoint");
         await handleStreamingRequest(apiRequestBody);
       } else {
         // Use regular endpoint
+        console.log("Step 4b: Using regular endpoint");
         await handleRegularRequest(apiRequestBody, initialExpertDetails, currentQuery);
       }
     } catch (err: unknown) {
@@ -422,6 +531,16 @@ function App() {
       {/* Sidebar */}
       {sidebarVisible && (
         <div className="sidebar">
+          <button
+            className="sidebar-close-btn"
+            onClick={() => {
+              console.log("Close button clicked");
+              setSidebarVisible(false);
+            }}
+            aria-label="Close sidebar"
+          >
+            ×
+          </button>
           <div className="sidebar-header">
             <h2>Chain of Experts</h2>
             <button 
@@ -562,7 +681,11 @@ function App() {
         <div className="chat-header">
           <button 
             className="toggle-sidebar-btn"
-            onClick={() => setSidebarVisible(!sidebarVisible)}
+            onClick={() => {
+              const newValue = !sidebarVisible;
+              console.log("Toggling sidebar:", newValue);
+              setSidebarVisible(newValue);
+            }}
             aria-label="Toggle sidebar"
           >
             {sidebarVisible ? '◀' : '▶'}
@@ -628,22 +751,35 @@ function App() {
           )}
         </div>
         
-        <form className="message-input-container" onSubmit={handleSendMessage}>
+        <div className="message-input-container">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type your message here..."
             disabled={loading}
+            onKeyPress={(e) => {
+              console.log("Key pressed:", e.key);
+              if (e.key === 'Enter' && query.trim() && !loading) {
+                console.log("Enter key pressed, calling handleSendMessage");
+                handleSendMessage();
+              }
+            }}
           />
-          <button 
-            type="submit" 
+          <button
+            type="button"
             disabled={loading || !query.trim()}
             className="send-button"
+            onClick={() => {
+              console.log("Send button clicked");
+              console.log("Query:", query);
+              console.log("Selected experts:", selectedExperts);
+              handleSendMessage();
+            }}
           >
             Send
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );

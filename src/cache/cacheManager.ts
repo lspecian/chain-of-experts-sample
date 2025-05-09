@@ -17,7 +17,7 @@ export interface CacheOptions {
 }
 
 // Default cache options
-const DEFAULT_CACHE_OPTIONS: CacheOptions = {
+export const DEFAULT_CACHE_OPTIONS: CacheOptions = {
   enabled: true,
   ttl: 1000 * 60 * 60, // 1 hour
   maxSize: 1000, // 1000 entries

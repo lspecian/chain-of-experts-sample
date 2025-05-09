@@ -114,16 +114,17 @@ test('displays the summary content correctly', async ({ page }) => {
   // Check if the summary text is displayed
   await expect(page.locator('.summary-content')).toContainText('This is a test summary', { timeout: 10000 });
   
-  // Check if metadata is displayed
-  await expect(page.locator('.result-metadata')).toBeVisible({ timeout: 10000 });
-  await expect(page.locator('.result-metadata')).toContainText('Processing Time', { timeout: 10000 });
-  await expect(page.locator('.result-metadata')).toContainText('Trace ID', { timeout: 10000 });
-  await expect(page.locator('.result-metadata')).toContainText('Token Usage', { timeout: 10000 });
+  // Check if metadata is displayed within the summary panel, specifically the one from SummarySection
+  const summaryMetadataLocator = page.locator('#panel-summary .summary-tab > .result-metadata');
+  await expect(summaryMetadataLocator).toBeVisible({ timeout: 10000 });
+  await expect(summaryMetadataLocator).toContainText('Processing Time', { timeout: 10000 });
+  await expect(summaryMetadataLocator).toContainText('Trace ID', { timeout: 10000 });
+  await expect(summaryMetadataLocator).toContainText('Token Usage', { timeout: 10000 });
 });
 
 test('displays the chain flow diagram', async ({ page }) => {
   // Check if the chain flow diagram is displayed
-  const chainFlowDiagram = page.locator('.chain-flow-diagram');
+  const chainFlowDiagram = page.locator('.chain-flow-diagram-container');
   await expect(chainFlowDiagram).toBeVisible({ timeout: 10000 });
   
   // Check if expert nodes are displayed within the ChainResultsViewer
@@ -135,9 +136,9 @@ test('displays the chain flow diagram', async ({ page }) => {
   await expect(expertNodes.nth(0)).toContainText('data-retrieval', { timeout: 10000 });
   await expect(expertNodes.nth(1)).toContainText('llm-summarization', { timeout: 10000 });
   
-  // Check if the connector is displayed within the ChainResultsViewer
-  const connector = chainResultsViewerElement.locator('.connector');
-  await expect(connector).toBeVisible({ timeout: 10000 });
+  // Check if the arrow connector is displayed within the ChainResultsViewer
+  const arrow = chainResultsViewerElement.locator('.arrow');
+  await expect(arrow).toBeVisible({ timeout: 10000 });
 });
 
 test('switches to Expert Details tab and displays expert contributions', async ({ page }) => {
@@ -178,18 +179,32 @@ test('expands expert details when clicking on an expert card', async ({ page }) 
 
   // Click on the first expert card's header within the viewer
   const firstExpertHeader = chainResultsViewerElement.locator('.expert-header').first();
+  
+  // Make sure the header is visible before clicking
+  await expect(firstExpertHeader).toBeVisible({ timeout: 10000 });
   await firstExpertHeader.click({ timeout: 10000 });
+  
+  // Wait a moment for the expansion animation to complete
+  await page.waitForTimeout(1000);
   
   // Check if the expert details are expanded within the viewer
   // We target the details section associated with the first expert card.
-  // Assuming .expert-contribution-card contains both .expert-header and .expert-details
   const firstExpertCard = chainResultsViewerElement.locator('.expert-contribution-card').first();
   const expertDetails = firstExpertCard.locator('.expert-details');
-  await expect(expertDetails).toBeVisible({ timeout: 10000 });
   
-  // Check if input and output panels are displayed
-  const ioPanels = expertDetails.locator('.io-panel');
+  // Check if the expert details element has the 'collapsed' class removed
+  const hasCollapsedClass = await expertDetails.evaluate(el => el.classList.contains('collapsed'));
+  expect(hasCollapsedClass).toBe(false);
+  
+  // Check for the presence of io-panels
+  const ioPanels = firstExpertCard.locator('.io-panel');
+  
+  // First check the count
   await expect(ioPanels).toHaveCount(2, { timeout: 10000 });
+  
+  // Then check individual panels
+  const inputPanel = firstExpertCard.locator('.io-panel >> nth=0');
+  await expect(inputPanel).toBeVisible({ timeout: 10000 });
   
   // Check if input and output content is displayed
   await expect(ioPanels.nth(0)).toContainText('Input', { timeout: 10000 });
@@ -200,8 +215,15 @@ test('expands expert details when clicking on an expert card', async ({ page }) 
   // Click on the expert card again to collapse it
   await firstExpertHeader.click({ timeout: 10000 }); // Clicking the same header again
   
-  // Check if the expert details are collapsed
-  await expect(expertDetails).not.toBeVisible({ timeout: 10000 });
+  // Wait for the collapse animation
+  await page.waitForTimeout(1000);
+  
+  // Check if the expert details element has the 'collapsed' class added back
+  const hasCollapsedClassAfter = await expertDetails.evaluate(el => el.classList.contains('collapsed'));
+  expect(hasCollapsedClassAfter).toBe(true);
+  
+  // Verify the io-panels are no longer visible
+  await expect(inputPanel).not.toBeVisible({ timeout: 10000 });
 });
 
 test('switches to Raw JSON tab and displays raw data', async ({ page }) => {
@@ -218,7 +240,7 @@ test('switches to Raw JSON tab and displays raw data', async ({ page }) => {
   // Check if the copy button is displayed
   const copyButton = page.locator('.copy-button');
   await expect(copyButton).toBeVisible({ timeout: 10000 });
-  await expect(copyButton).toContainText('Copy to Clipboard', { timeout: 10000 });
+  await expect(copyButton).toContainText('Copy JSON to Clipboard', { timeout: 10000 });
 });
 
 test('clicking on expert in flow diagram switches to details tab', async ({ page }) => {

@@ -1,6 +1,7 @@
 import { LLMProvider, LLMProviderConfig } from './types';
 import { OpenAIProvider } from './openai';
 import { GeminiProvider } from './gemini';
+import { RequestBatcher } from './requestBatcher'; // Import RequestBatcher
 import { logger } from '../utils/logger';
 
 /**
@@ -53,12 +54,19 @@ export class LLMProviderFactory {
         logger.error(`Unknown provider type: ${providerName}`);
         throw new Error(`Unknown provider type: ${providerName}`);
     }
+
+    // Optionally wrap with RequestBatcher
+    let finalProvider: LLMProvider = provider;
+    if (config.batchingEnabled) {
+      finalProvider = new RequestBatcher(provider, config.batcherOptions);
+      logger.info(`Enabled request batching for provider: ${providerName}`);
+    }
     
     // Register the provider
-    this.providers.set(providerName, provider);
-    logger.info(`Registered provider: ${providerName}`);
+    this.providers.set(providerName, finalProvider);
+    logger.info(`Registered provider: ${providerName}${config.batchingEnabled ? ' (with batching)' : ''}`);
     
-    return provider;
+    return finalProvider;
   }
 
   /**

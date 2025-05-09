@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #333;
+        }
+        pre {
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-container {
+            margin-top: 20px;
+            border: 1px solid #333;
+            padding: 10px;
+            background-color: #1e1e1e;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .error {
+            color: #f44336;
+        }
+        .info {
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chain of Experts Debug API Test</h1>
+    
+    <textarea id="query" placeholder="Enter your query here...">What is a vector database?</textarea>
+    
+    <div>
+        <label>
+            <input type="checkbox" id="skipCache">
+            Skip Cache
+        </label>
+    </div>
+    
+    <button id="sendRequest">Send Request</button>
+    <button id="clearLogs">Clear Logs</button>
+    
+    <h2>Debug Logs:</h2>
+    <div id="logs" class="log-container"></div>
+    
+    <h2>Response:</h2>
+    <pre id="response">Response will appear here...</pre>
+    
+    <script>
+        // Debug logging function
+        function log(message, type = 'info') {
+            const logsContainer = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+        
+        // Clear logs
+        document.getElementById('clearLogs').addEventListener('click', () => {
+            document.getElementById('logs').innerHTML = '';
+            log('Logs cleared', 'info');
+        });
+        
+        // Send request
+        document.getElementById('sendRequest').addEventListener('click', async () => {
+            const query = document.getElementById('query').value;
+            const skipCache = document.getElementById('skipCache').checked;
+            const responseElement = document.getElementById('response');
+            
+            responseElement.textContent = 'Loading...';
+            
+            log(`Starting request with query: "${query}"`, 'info');
+            log(`Skip cache: ${skipCache}`, 'info');
+            
+            try {
+                const apiRequestBody = {
+                    input: {
+                        type: 'query',
+                        query: query,
+                    },
+                    expertNames: ['data-retrieval', 'llm-summarization'],
+                    skipCache: skipCache
+                };
+                
+                log(`Request body: ${JSON.stringify(apiRequestBody)}`, 'info');
+                
+                // First try with relative URL
+                try {
+                    log('Attempting request with relative URL: /api/process', 'info');
+                    
+                    const response = await fetch('/api/process', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(apiRequestBody),
+                    });
+                    
+                    log(`Response status: ${response.status} ${response.statusText}`, 'info');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const responseText = await response.text();
+                    log(`Raw response text: ${responseText.substring(0, 100)}...`, 'info');
+                    
+                    try {
+                        const data = JSON.parse(responseText);
+                        log('Successfully parsed JSON response', 'success');
+                        responseElement.textContent = JSON.stringify(data, null, 2);
+                        
+                        // Check if intermediateResults are present
+                        if (data.intermediateResults && data.intermediateResults.length > 0) {
+                            log(`Found ${data.intermediateResults.length} intermediate results`, 'success');
+                        } else {
+                            log('No intermediate results found', 'info');
+                        }
+                        
+                        return; // Exit if successful
+                    } catch (jsonError) {
+                        log(`Error parsing JSON: ${jsonError.message}`, 'error');
+                        throw jsonError;
+                    }
+                } catch (relativeUrlError) {
+                    log(`Error with relative URL: ${relativeUrlError.message}`, 'error');
+                    log('Trying with absolute URL...', 'info');
+                    
+                    // If relative URL fails, try with absolute URL
+                    try {
+                        const absoluteUrl = 'http://localhost:8080/api/process';
+                        log(`Attempting request with absolute URL: ${absoluteUrl}`, 'info');
+                        
+                        const response = await fetch(absoluteUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(apiRequestBody),
+                        });
+                        
+                        log(`Response status: ${response.status} ${response.statusText}`, 'info');
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        const responseText = await response.text();
+                        log(`Raw response text: ${responseText.substring(0, 100)}...`, 'info');
+                        
+                        try {
+                            const data = JSON.parse(responseText);
+                            log('Successfully parsed JSON response', 'success');
+                            responseElement.textContent = JSON.stringify(data, null, 2);
+                            
+                            // Check if intermediateResults are present
+                            if (data.intermediateResults && data.intermediateResults.length > 0) {
+                                log(`Found ${data.intermediateResults.length} intermediate results`, 'success');
+                            } else {
+                                log('No intermediate results found', 'info');
+                            }
+                        } catch (jsonError) {
+                            log(`Error parsing JSON: ${jsonError.message}`, 'error');
+                            throw jsonError;
+                        }
+                    } catch (absoluteUrlError) {
+                        log(`Error with absolute URL: ${absoluteUrlError.message}`, 'error');
+                        throw absoluteUrlError;
+                    }
+                }
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                responseElement.textContent = `Error: ${error.message}`;
+            }
+        });
+        
+        // Log initial state
+        log('Debug page loaded', 'info');
+        log('Ready to send requests', 'info');
+    </script>
+</body>
+</html>

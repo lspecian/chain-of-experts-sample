@@ -91,6 +91,8 @@ export interface LLMProvider {
   createEmbedding(request: LLMEmbeddingRequest): Promise<LLMEmbeddingResponse>;
 }
 
+import { RequestBatcherOptions } from './requestBatcher'; // Import batcher options
+
 /**
  * Configuration for LLM providers
  */
@@ -100,5 +102,7 @@ export interface LLMProviderConfig {
   apiKey?: string;
   organization?: string;
   baseUrl?: string;
+  batchingEnabled?: boolean;
+  batcherOptions?: RequestBatcherOptions;
   [key: string]: any;
 }

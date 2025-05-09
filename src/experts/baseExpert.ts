@@ -1,5 +1,6 @@
 import { ChainInput, ExpertMetadata } from '../chain/types';
-import { LangfuseTraceClient } from 'langfuse';
+// Import LangfuseSpanClient and LangfuseGenerationClient
+import { LangfuseTraceClient, LangfuseSpanClient, LangfuseGenerationClient } from 'langfuse';
 
 export interface ExpertOutput {
   [key: string]: any;
@@ -24,6 +25,10 @@ export interface IExpert {
   setParameters(parameters: ExpertParameters): void;
   // Method to validate parameters (optional implementation)
   validateParameters?(parameters: ExpertParameters): boolean;
+  // Method for custom scoring
+  calculateScores?(output: ExpertOutput, langfuseObject: LangfuseSpanClient | LangfuseGenerationClient, trace: LangfuseTraceClient): Promise<void>;
+  // Method for an expert to declare what parts of context it needs
+  getRequiredContextKeys?(): { state?: string[]; expertOutput?: string[]; chainInput?: string[] };
 }
 
 // BaseExpert now implements IExpert
@@ -90,6 +95,13 @@ export abstract class BaseExpert implements IExpert {
 
   // Updated signature to include context
   abstract process(input: ChainInput, context: ChainContext, trace: LangfuseTraceClient): Promise<ExpertOutput>;
+
+  // Default empty implementation for calculateScores
+  async calculateScores(output: ExpertOutput, langfuseObject: LangfuseSpanClient | LangfuseGenerationClient, trace: LangfuseTraceClient): Promise<void> {
+    // Base implementation does nothing. Subclasses should override this.
+    // Example: langfuseObject.score({ name: 'relevance', value: 0.9, comment: 'High relevance' });
+    return Promise.resolve();
+  }
 }
 
 // Forward declaration for ChainContext (will be defined in types.ts)

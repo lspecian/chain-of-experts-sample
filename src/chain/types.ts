@@ -1,5 +1,6 @@
 
-import { CacheOptions } from '../cache/cacheManager';
+import { CacheOptions as BaseCacheOptions } from '../cache/cacheManager';
+import { RedisCacheOptions } from '../cache/redisCacheManager'; // Import RedisCacheOptions
 
 // --- Core Chain Input/Output ---
 
@@ -27,11 +28,21 @@ export interface IntermediateResult {
   timestamp: string;
 }
 
+export interface TokenUsage {
+  prompt: number;
+  completion: number;
+  total: number;
+  provider?: string;
+  model?: string;
+}
+
 export interface ChainOutput {
   result: ExpertOutput | null; // Final output from the last expert
   intermediateResults?: IntermediateResult[]; // Results from each expert in the chain
   success: boolean;
   error?: string; // Error message if success is false
+  tokenUsage?: TokenUsage; // Token usage information
+  durationMs?: number; // Processing time in milliseconds
 }
 
 // --- Context Object ---
@@ -82,6 +93,14 @@ export interface RetryOptions {
 export interface ExpertOptions {
   timeoutMs?: number;
   retryOptions?: RetryOptions;
+  rateLimit?: {
+    requestsPerInterval?: number;
+    intervalMs?: number;
+  };
+  circuitBreaker?: {
+    failureThreshold?: number; // Number of failures to open the circuit
+    resetTimeoutMs?: number;  // Time to wait before attempting to close (half-open state)
+  };
   // Add other expert-specific options
 }
 
@@ -92,9 +111,10 @@ export interface ChainOptions {
   failFast?: boolean; // Stop on first error? (Relevant for sequential)
   defaultExpertOptions?: ExpertOptions;
   onIntermediateResult?: (result: IntermediateResult) => void; // Callback for streaming intermediate results
-  cache?: CacheOptions; // Caching options
+  cache?: (BaseCacheOptions & { type?: 'memory' }) | (RedisCacheOptions & { type: 'redis' }); // Caching options
   skipCache?: boolean; // Skip cache for this execution (override cache.enabled)
   expertParameters?: Record<string, Record<string, string | number | boolean | undefined>>; // Parameters for specific experts
+  maxConcurrency?: number; // Max number of experts to run in parallel
   // Add other chain-level options
 }
 

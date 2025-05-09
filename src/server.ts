@@ -59,6 +59,20 @@ async function startServer() {
 
   const app = express();
   app.use(json()); // Use body-parser middleware
+  
+  // Add CORS headers
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+    
+    next();
+  });
 
   // Health check endpoint
   app.get('/health', (req, res) => {
@@ -339,10 +353,11 @@ async function startServer() {
       const durationMs = Date.now() - requestStartTime;
       logger.info('Processing request successful', { userId: effectiveUserId, sessionId: effectiveSessionId, durationMs, success: result.success });
 
-      // Return the result with traceId
+      // Return the result with traceId and durationMs
       res.status(result.success ? 200 : 500).json({
         ...result,
-        traceId: context.traceId // Include the traceId in the response
+        traceId: context.traceId, // Include the traceId in the response
+        durationMs // Include the processing time in the response
       }); // Use appropriate status code
     } catch (error) {
       const durationMs = Date.now() - requestStartTime;

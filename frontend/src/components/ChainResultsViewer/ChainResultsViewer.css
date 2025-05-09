@@ -11,7 +11,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin: 15px 0;
   overflow: hidden;
-  transition: all 0.3s ease;
+  /* transition: all 0.3s ease; */ /* Removed 'all' transition for performance */
 }
 
 /* Tabs */
@@ -29,7 +29,7 @@
   font-size: 14px;
   font-weight: 500;
   color: #586069;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .tab-button:hover {
@@ -45,6 +45,28 @@
 
 .tab-content {
   padding: 16px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.tab-content > h3 { /* Target direct h3 children for section titles */
+  font-size: 1.1em; /* Slightly larger */
+  font-weight: 600; /* A bit bolder */
+  color: #24292e;
+  margin-top: 0; /* Remove default top margin if it's the first element */
+  margin-bottom: 16px; /* Consistent bottom margin */
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.dark .tab-content > h3 {
+  color: #e1e4e8;
+  border-bottom-color: #444;
+}
+
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Summary Section */
@@ -121,12 +143,14 @@
 
 /* Chain Flow Diagram */
 .visual-chain-flow {
-  margin-top: 20px;
+  /* margin-top: 20px; */ /* Standardized to margin-bottom */
+  margin-bottom: 20px;
 }
 
 .visual-chain-flow h3 {
   font-size: 16px;
-  margin-bottom: 10px;
+  /* margin-bottom: 10px; */ /* Align with general section title margin */
+  margin-bottom: 16px;
   color: #24292e;
 }
 
@@ -309,6 +333,19 @@
 .expert-details {
   padding: 16px;
   border-top: 1px solid #e1e4e8;
+  max-height: 500px; /* Set a default max-height for transition */
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out;
+  opacity: 1;
+  will-change: max-height, opacity, padding; /* Hint for performance */
+}
+
+.expert-details.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-top-width: 0; /* Hide border when collapsed */
 }
 
 .io-container {
@@ -341,6 +378,25 @@
   padding: 8px 12px;
   background-color: #f6f8fa;
   border-bottom: 1px solid #e1e4e8;
+  position: relative; /* For positioning copy button */
+}
+
+.io-copy-button {
+  font-size: 10px !important;
+  padding: 2px 6px !important;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.io-panel:hover .io-copy-button {
+  opacity: 1;
+}
+
+.dark .io-copy-button {
+  /* Ensure dark mode styles are applied if needed, inherits from .copy-button for now */
 }
 
 .io-header h5 {
@@ -390,7 +446,8 @@
 
 /* Token Usage Display */
 .token-usage-details {
-  margin-top: 24px;
+  /* margin-top: 24px; */ /* Standardized to margin-bottom */
+  margin-bottom: 20px;
 }
 
 .token-usage-card {
@@ -444,7 +501,7 @@
   padding: 6px 12px;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .copy-button:hover {
@@ -498,16 +555,117 @@
   width: 120px;
 }
 
+.progress-message {
+  text-align: center;
+  padding: 10px;
+  font-style: italic;
+  color: #586069;
+  margin-bottom: 10px;
+}
+
+.loading-container.dark .progress-message {
+  color: #9da5b4;
+}
+/* Enhanced Skeleton Styles */
+.skeleton-tabs {
+  display: flex;
+  padding: 10px 16px 0; /* Match tab container */
+  border-bottom: 1px solid #e1e4e8; /* Match tab container */
+  background-color: #f5f7fa; /* Match tab container */
+}
+
+.tab-skeleton {
+  height: 38px; /* Approx height of a tab button */
+  width: 100px;
+  margin-right: 8px;
+  border-radius: 4px 4px 0 0; /* Match tab top radius */
+}
+
+.skeleton-tab-content {
+  padding: 16px;
+}
+
+.skeleton-section {
+  margin-bottom: 24px;
+}
+
+.title-skeleton {
+  height: 20px;
+  width: 40%;
+  margin-bottom: 12px;
+}
+
+.text-skeleton-long {
+  height: 16px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.text-skeleton-medium {
+  height: 16px;
+  width: 70%;
+  margin-bottom: 8px;
+}
+
+.skeleton-flow-diagram {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background-color: #f6f8fa; /* Match actual component background */
+  border-radius: 6px; /* Match actual component border-radius */
+}
+
 .flow-node-skeleton {
-  height: 60px;
+  height: 60px; /* Smaller than actual nodes for skeleton */
   width: 60px;
-  border-radius: 50%;
+  border-radius: 50%; /* Match node style */
+  margin-right: 10px;
 }
 
 .flow-connector-skeleton {
   height: 2px;
-  width: 40px;
+  width: 30px;
+  margin-right: 10px;
 }
+
+.card-skeleton {
+  height: 80px; /* Approx height of an expert card */
+  width: 100%;
+  border-radius: 6px; /* Match card style */
+  margin-bottom: 12px;
+}
+
+.skeleton-token-usage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+  background-color: #f6f8fa; /* Match actual component background */
+  border-radius: 6px; /* Match actual component border-radius */
+}
+
+.token-item-skeleton {
+  height: 12px;
+  width: 100px;
+}
+
+/* Dark Mode Skeleton Styles */
+.loading-container.dark .skeleton-loader {
+  background: linear-gradient(90deg, #333 25%, #444 50%, #333 75%);
+  background-size: 200% 100%;
+}
+
+.loading-container.dark .skeleton-tabs {
+  background-color: #2d333b; /* Darker tab background */
+  border-bottom: 1px solid #444c56; /* Darker border */
+}
+
+.loading-container.dark .skeleton-flow-diagram,
+.loading-container.dark .skeleton-token-usage {
+  background-color: #2d333b; /* Darker section background */
+}
+/* Removed duplicate/conflicting .flow-node-skeleton and .flow-connector-skeleton rules.
+   The definitions at lines 614-625 are retained. */
 
 @keyframes loading {
   0% {
@@ -554,7 +712,7 @@
   padding: 8px 16px;
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .retry-button:hover {
@@ -653,6 +811,14 @@
 .dark .io-header {
   background-color: #2d2d2d;
   border-color: #444;
+}
+
+.dark .expert-details {
+  border-top-color: #444;
+}
+
+.dark .expert-details.collapsed {
+   border-top-color: transparent; /* Match light mode for collapsed border */
 }
 
 .dark .expert-header:hover {
@@ -755,4 +921,199 @@
     flex-direction: column;
     gap: 8px;
   }
+
+  .tab-content > h3 {
+    font-size: 1.05em; /* Intermediate size for tablets */
+  }
+  
+  /* Tooltip Styles */
+  .tooltip-container {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+  }
+  
+  .tooltip-text {
+    visibility: hidden;
+    width: max-content;
+    max-width: 200px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 8px;
+    position: absolute;
+    z-index: 10;
+    bottom: 125%; /* Position above the element */
+    left: 50%;
+    margin-left: -60px; /* Adjust to center */
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  
+  .tooltip-text::after { /* Arrow */
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+  }
+  
+  .tooltip-container:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  /* Dark mode for tooltips (if not already covered by .dark parent) */
+  .dark .tooltip-text {
+    background-color: #555;
+    color: #f0f0f0;
+  }
+  
+  .dark .tooltip-text::after {
+    border-top-color: #555;
+  }
+}
+
+@media (max-width: 480px) {
+  .chain-results-viewer {
+    margin: 8px 0; /* Reduce margins for very small screens */
+  }
+
+  .tab-button {
+    padding: 10px 12px; /* Slightly smaller tab buttons */
+    font-size: 13px;
+  }
+
+  .tab-content {
+    padding: 12px; /* Reduce padding in tab content */
+  }
+  
+  .tab-content > h3 {
+    font-size: 1em; /* Smaller section titles */
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+  }
+
+  .chain-flow-diagram {
+    padding: 8px; /* Reduce padding for the diagram container */
+  }
+
+  .expert-node {
+    min-width: 60px; /* Further reduce node size */
+    height: 60px;
+    padding: 4px;
+  }
+
+  .node-icon {
+    font-size: 14px; /* Smaller icon */
+  }
+
+  .node-name {
+    font-size: 9px; /* Smaller name text */
+  }
+  
+  .node-type, .node-time {
+    font-size: 8px; /* Smaller type/time text */
+  }
+
+  .connector {
+    width: 15px; /* Shorter connector */
+  }
+  
+  .arrow {
+    font-size: 16px; /* Smaller arrow */
+  }
+
+  .expert-header {
+    padding: 10px 12px; /* Adjust padding */
+  }
+
+  .expert-info h4 {
+    font-size: 13px;
+  }
+
+  .expert-type {
+    font-size: 11px;
+    padding: 2px 5px;
+  }
+
+  .expert-time {
+    font-size: 11px;
+  }
+  
+  .io-header {
+    padding: 6px 10px;
+  }
+  
+  .io-header h5 {
+    font-size: 13px;
+  }
+  
+  .io-badge {
+    font-size: 9px;
+    padding: 2px 5px;
+  }
+  
+  .io-content {
+    font-size: 11px;
+    padding: 10px;
+  }
+
+  .token-usage-card {
+    padding: 12px;
+  }
+  
+  .token-label, .token-value {
+    font-size: 11px;
+  }
+  
+  .raw-json {
+    font-size: 11px;
+    padding: 12px;
+  }
+}
+/* ErrorBoundary Fallback UI */
+.error-boundary-fallback {
+  padding: 16px;
+  background-color: #fff0f0; /* Light red background */
+  border: 1px solid #ffcccc; /* Light red border */
+  border-radius: 6px;
+  margin: 16px;
+  color: #a04040; /* Darker red text */
+}
+
+.error-boundary-fallback h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #d73a49; /* Strong red for title */
+}
+
+.error-boundary-fallback p {
+  margin-bottom: 4px;
+}
+
+.error-boundary-fallback small {
+  font-size: 0.8em;
+  color: #705050; /* Muted red for details */
+}
+
+/* Dark Mode for ErrorBoundary */
+.error-boundary-fallback.dark {
+  background-color: #402020; /* Dark red background */
+  border-color: #703030; /* Dark red border */
+  color: #ffc0c0; /* Light red text */
+}
+
+.error-boundary-fallback.dark h4 {
+  color: #e06c75; /* Lighter red for title in dark mode */
+}
+
+.error-boundary-fallback.dark small {
+  color: #d0a0a0; /* Muted light red for details in dark mode */
 }

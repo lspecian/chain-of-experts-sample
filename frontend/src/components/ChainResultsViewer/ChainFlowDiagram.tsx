@@ -1,52 +1,46 @@
 import React from 'react';
-import type { ExpertContribution } from '../../utils/chainResponseParser';
-import { formatDuration } from '../../utils/chainResponseParser';
+import './ChainFlowDiagram.css';
+
+interface ExpertData {
+  expertName: string;
+  expertType: string;
+  expertIndex: number;
+  input: unknown;
+  output: unknown;
+  timestamp: string;
+  durationMs?: number;
+}
 
 interface ChainFlowDiagramProps {
-  experts: ExpertContribution[];
+  experts: ExpertData[];
   darkMode?: boolean;
   onExpertClick?: (expertName: string) => void;
 }
 
-/**
- * ChainFlowDiagram component visualizes the sequence of expert contributions
- * in the chain as a flow diagram with connecting arrows
- */
-const ChainFlowDiagram: React.FC<ChainFlowDiagramProps> = ({ 
-  experts, 
-  darkMode = false,
-  onExpertClick
-}) => {
+const ChainFlowDiagram: React.FC<ChainFlowDiagramProps> = ({ experts, darkMode = false, onExpertClick }) => {
   if (!experts || experts.length === 0) {
-    return null;
+    return <div className={`chain-flow-diagram-empty ${darkMode ? 'dark' : 'light'}`}>No expert data to display.</div>;
   }
 
-  // Sort experts by index to ensure correct order
-  const sortedExperts = [...experts].sort((a, b) => a.expertIndex - b.expertIndex);
-
   return (
-    <div className={`visual-chain-flow ${darkMode ? 'dark' : 'light'}`}>
-      <h3>Expert Chain Flow</h3>
-      <div className="chain-flow-diagram">
-        {sortedExperts.map((expert, index) => (
+    <div className={`chain-flow-diagram-container ${darkMode ? 'dark' : 'light'}`}>
+      <h2>Chain Flow</h2>
+      <div className="diagram">
+        {experts.map((expert, index) => (
           <React.Fragment key={expert.expertName}>
-            <div 
+            <div
               className="expert-node"
               onClick={() => onExpertClick && onExpertClick(expert.expertName)}
-              title={`${expert.expertType} expert: ${expert.expertName}`}
+              role="button"
+              tabIndex={0}
+              onKeyPress={(e) => e.key === 'Enter' && onExpertClick && onExpertClick(expert.expertName)}
             >
-              <div className="node-icon">✓</div>
-              <div className="node-name">{expert.expertName}</div>
-              <div className="node-type">{expert.expertType}</div>
-              <div className="node-time">{formatDuration(expert.durationMs)}</div>
+              <div className="expert-name">{expert.expertName}</div>
+              <div className="expert-type">({expert.expertType})</div>
+              {/* Placeholder for more expert details/summary */}
             </div>
-            {index < sortedExperts.length - 1 && (
-              <div className="connector">
-                <div className="arrow">→</div>
-                <div className="data-flow-indicator" title="Data flowing to next expert">
-                  <span className="data-dot"></span>
-                </div>
-              </div>
+            {index < experts.length - 1 && (
+              <div className="arrow">→</div>
             )}
           </React.Fragment>
         ))}

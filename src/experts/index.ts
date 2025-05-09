@@ -2,6 +2,10 @@ import { IExpert, ExpertParameters } from './baseExpert'; // Import ExpertParame
 import { ExpertMetadata } from '../chain/types';
 import { DataRetrievalExpert } from './expert1';
 import { LLMSummarizationExpert } from './expert2';
+import { QueryReformulationExpert } from './queryReformulationExpert';
+import { DocumentFilteringExpert } from './documentFilteringExpert';
+import { FactCheckingExpert } from './factCheckingExpert';
+import { ResponseFormattingExpert } from './responseFormattingExpert'; // Added import
 import { ExpertNotFoundError } from '../chain/errors';
 
 // Updated Expert factory type definition to accept parameters
@@ -40,6 +44,51 @@ export class ExpertRegistry {
       parameters: {
         maxTokens: 500,
         temperature: 0.7
+      }
+    });
+
+    this.register({
+      name: 'query-reformulation',
+      factory: (parameters) => new QueryReformulationExpert(parameters),
+      description: 'Reformulates user queries for better search results',
+      parameters: {
+        // Default parameters for QueryReformulationExpert if any, e.g.:
+        // reformulationModel: 'gpt-3.5-turbo',
+        // temperature: 0.3,
+      }
+    });
+
+    this.register({
+      name: 'document-filtering',
+      factory: (parameters) => new DocumentFilteringExpert(parameters),
+      description: 'Filters and ranks retrieved documents based on relevance and other criteria.',
+      parameters: {
+        minRelevanceScore: 0.5,
+        maxOutputDocuments: 5,
+        sortBy: 'relevance',
+      }
+    });
+
+    this.register({
+      name: 'fact-checking',
+      factory: (parameters) => new FactCheckingExpert(parameters),
+      description: 'Verifies factual claims against source documents using an LLM.',
+      parameters: {
+        // Default parameters for FactCheckingExpert
+        temperature: 0.2,
+        maxTokensPerClaim: 200,
+      }
+    });
+
+    this.register({
+      name: 'response-formatting',
+      factory: (parameters) => new ResponseFormattingExpert(parameters),
+      description: 'Formats text into specified structures (e.g., bullet points, JSON) using an LLM.',
+      parameters: {
+        // Default parameters for ResponseFormattingExpert
+        targetFormat: 'paragraph',
+        style: 'concise',
+        temperature: 0.5,
       }
     });
   }

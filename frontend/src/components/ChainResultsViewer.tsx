@@ -3,9 +3,10 @@ import './ChainResultsViewer/ChainResultsViewer.css';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { ChainResult, ExpertContribution, TokenUsage } from '../utils/chainResponseParser';
 import { parseChainResponse, hasError } from '../utils/chainResponseParser';
+import ErrorBoundary from './ErrorBoundary'; // Import ErrorBoundary
 
 // Import sub-components
-import { 
+import {
   SummarySection,
   ChainFlowDiagram,
   ExpertContributionsList,
@@ -58,11 +59,31 @@ const ChainResultsViewer: React.FC<ChainResultsViewerProps> = ({
   if (hasError(result)) {
     return (
       <div className={`chain-results-viewer ${darkMode ? 'dark' : 'light'}`}>
-        <ErrorDisplay 
-          result={result} 
-          darkMode={darkMode} 
+        <ErrorDisplay
+          result={result}
+          darkMode={darkMode}
           onRetry={onRetry}
         />
+      </div>
+    );
+  }
+
+  // If there's no result or summary, and not loading/error, show a message or minimal UI
+  if (!result || (!result.summary && !result.answer && !result.intermediateResults?.length)) {
+    return (
+      <div className={`chain-results-viewer ${darkMode ? 'dark' : 'light'}`}>
+        <div className="tab-content">
+          <p className="no-data-message">No results to display.</p>
+          {result?.traceId && (
+            <div className="result-metadata" style={{ justifyContent: 'center', marginTop: '10px' }}>
+               <div className="metadata-item tooltip-container">
+                <span className="metadata-label">Trace ID:</span>
+                <code className="metadata-value trace-id">{result.traceId}</code>
+                <span className="tooltip-text">Unique identifier for this chain execution. Useful for debugging.</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -70,22 +91,37 @@ const ChainResultsViewer: React.FC<ChainResultsViewerProps> = ({
   return (
     <div className={`chain-results-viewer ${darkMode ? 'dark' : 'light'}`}>
       {/* Tabs for different views */}
-      <div className="result-tabs">
-        <button 
+      <div className="result-tabs" role="tablist" aria-label="Result views">
+        <button
+          id="tab-summary"
+          role="tab"
+          aria-selected={activeTab === 'summary'}
+          aria-controls="panel-summary"
           className={`tab-button ${activeTab === 'summary' ? 'active' : ''}`}
           onClick={() => setActiveTab('summary')}
+          tabIndex={activeTab === 'summary' ? 0 : -1}
         >
           Summary
         </button>
-        <button 
+        <button
+          id="tab-details"
+          role="tab"
+          aria-selected={activeTab === 'details'}
+          aria-controls="panel-details"
           className={`tab-button ${activeTab === 'details' ? 'active' : ''}`}
           onClick={() => setActiveTab('details')}
+          tabIndex={activeTab === 'details' ? 0 : -1}
         >
           Expert Details
         </button>
-        <button 
+        <button
+          id="tab-raw"
+          role="tab"
+          aria-selected={activeTab === 'raw'}
+          aria-controls="panel-raw"
           className={`tab-button ${activeTab === 'raw' ? 'active' : ''}`}
           onClick={() => setActiveTab('raw')}
+          tabIndex={activeTab === 'raw' ? 0 : -1}
         >
           Raw JSON
         </button>
@@ -93,43 +129,83 @@ const ChainResultsViewer: React.FC<ChainResultsViewerProps> = ({
 
       {/* Summary Tab */}
       {activeTab === 'summary' && (
-        <div className="tab-content">
-          <SummarySection result={result} darkMode={darkMode} />
+        <div
+          id="panel-summary"
+          role="tabpanel"
+          aria-labelledby="tab-summary"
+          className="tab-content"
+          tabIndex={0}
+        >
+          <ErrorBoundary darkMode={darkMode} fallbackMessage="Could not load summary.">
+            <SummarySection result={result} darkMode={darkMode} />
+          </ErrorBoundary>
           
           {result.intermediateResults && result.intermediateResults.length > 0 && (
-            <ChainFlowDiagram 
-              experts={result.intermediateResults} 
-              darkMode={darkMode}
-              onExpertClick={handleExpertClick}
-            />
+            <ErrorBoundary darkMode={darkMode} fallbackMessage="Could not load chain flow diagram.">
+              <ChainFlowDiagram
+                experts={result.intermediateResults}
+                darkMode={darkMode}
+                onExpertClick={handleExpertClick}
+              />
+            </ErrorBoundary>
+          )}
+
+          {result.traceId && !loading && !hasError(result) && ( // Ensure not to show if already shown in no-data block
+             <div className="result-metadata" style={{ marginTop: '20px' }}>
+               <div className="metadata-item tooltip-container">
+                <span className="metadata-label">Trace ID:</span>
+                <code className="metadata-value trace-id">{result.traceId}</code>
+                <span className="tooltip-text">Unique identifier for this chain execution. Useful for debugging.</span>
+              </div>
+            </div>
           )}
         </div>
       )}
 
       {/* Details Tab */}
       {activeTab === 'details' && (
-        <div className="tab-content">
+        <div
+          id="panel-details"
+          role="tabpanel"
+          aria-labelledby="tab-details"
+          className="tab-content"
+          tabIndex={0}
+        >
           <h3>Expert Contributions</h3>
           
           {result.intermediateResults && result.intermediateResults.length > 0 && (
-            <ExpertContributionsList 
-              experts={result.intermediateResults} 
-              darkMode={darkMode} 
-            />
+            <ErrorBoundary darkMode={darkMode} fallbackMessage="Could not load expert contributions.">
+              <ExpertContributionsList
+                experts={result.intermediateResults}
+                darkMode={darkMode}
+              />
+            </ErrorBoundary>
           )}
           
           {result.tokenUsage && (
-            <TokenUsageDisplay 
-              tokenUsage={result.tokenUsage} 
-              darkMode={darkMode} 
-            />
+            <ErrorBoundary darkMode={darkMode} fallbackMessage="Could not load token usage.">
+              <TokenUsageDisplay
+                tokenUsage={result.tokenUsage}
+                darkMode={darkMode}
+              />
+            </ErrorBoundary>
           )}
         </div>
       )}
 
       {/* Raw JSON Tab */}
       {activeTab === 'raw' && (
-        <RawResponseView data={data} darkMode={darkMode} />
+        <div
+          id="panel-raw"
+          role="tabpanel"
+          aria-labelledby="tab-raw"
+          className="tab-content"
+          tabIndex={0}
+        >
+          <ErrorBoundary darkMode={darkMode} fallbackMessage="Could not load raw JSON view.">
+            <RawResponseView data={data} darkMode={darkMode} />
+          </ErrorBoundary>
+        </div>
       )}
     </div>
   );

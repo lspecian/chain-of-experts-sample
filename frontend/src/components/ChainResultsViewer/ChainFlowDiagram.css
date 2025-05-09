@@ -1,0 +1,52 @@
+.chain-flow-diagram-container {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #eee;
+}
+
+.chain-flow-diagram-container h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.2em;
+  color: #333;
+}
+
+.diagram {
+  display: flex;
+  align-items: center;
+  overflow-x: auto; /* Allows horizontal scrolling if many experts */
+  padding-bottom: 10px; /* Space for scrollbar if needed */
+}
+
+.expert-node {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px 15px;
+  margin-right: 10px;
+  min-width: 120px; /* Minimum width for an expert node */
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.expert-name {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #007bff;
+}
+
+.arrow {
+  font-size: 1.5em;
+  color: #555;
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.chain-flow-diagram-empty {
+  padding: 20px;
+  text-align: center;
+  color: #777;
+}

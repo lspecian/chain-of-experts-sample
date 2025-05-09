@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #333;
+        }
+        pre {
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            color: #e0e0e0;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chain of Experts Frontend API Test</h1>
+    
+    <textarea id="query" placeholder="Enter your query here...">What is machine learning?</textarea>
+    
+    <div>
+        <label>
+            <input type="checkbox" id="useStreaming" checked>
+            Use Streaming
+        </label>
+    </div>
+    
+    <div>
+        <label>
+            <input type="checkbox" id="skipCache">
+            Skip Cache
+        </label>
+    </div>
+    
+    <button id="sendRequest">Send Request</button>
+    
+    <h2>Response:</h2>
+    <pre id="response">Response will appear here...</pre>
+    
+    <script>
+        document.getElementById('sendRequest').addEventListener('click', async () => {
+            const query = document.getElementById('query').value;
+            const useStreaming = document.getElementById('useStreaming').checked;
+            const skipCache = document.getElementById('skipCache').checked;
+            const responseElement = document.getElementById('response');
+            
+            responseElement.textContent = 'Loading...';
+            
+            try {
+                console.log('Sending request to API...');
+                console.log('Query:', query);
+                console.log('Use Streaming:', useStreaming);
+                console.log('Skip Cache:', skipCache);
+                
+                const apiRequestBody = {
+                    input: {
+                        type: 'query',
+                        query: query,
+                    },
+                    expertNames: ['data-retrieval', 'llm-summarization'],
+                    skipCache: skipCache
+                };
+                
+                let endpoint = useStreaming ? '/api/process/stream' : '/api/process';
+                
+                if (useStreaming) {
+                    // Handle streaming response
+                    responseElement.textContent = 'Streaming not implemented in this test...';
+                } else {
+                    // Handle regular response
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(apiRequestBody),
+                    });
+                    
+                    console.log('Response received:', response.status, response.statusText);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Data:', data);
+                    
+                    responseElement.textContent = JSON.stringify(data, null, 2);
+                    
+                    // Check if intermediateResults are present
+                    if (data.intermediateResults && data.intermediateResults.length > 0) {
+                        console.log('Intermediate results found:', data.intermediateResults.length);
+                    } else {
+                        console.log('No intermediate results found');
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                responseElement.textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
