@@ -1,6 +1,8 @@
-# Chain of Experts Application
+# Chain of Experts Application [EXPERIMENTATION]
 
 This repository contains a TypeScript implementation of a "Chain of Experts" (CoE) LLM application featuring dynamic expert management, resilient processing with retries, multi-cloud deployment using Terragrunt/Terraform (AWS primary, GCP optional), and observability using Langfuse.
+
+It's a experimentional project, not menat to be fully functional.
 
 ## Architecture
 

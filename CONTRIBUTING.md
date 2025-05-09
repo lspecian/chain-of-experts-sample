@@ -1,4 +1,4 @@
-# Contributing to Chain of Experts
+# Contributing to Chain of Experts 
 
 Thank you for your interest in contributing to the Chain of Experts project! This document provides guidelines and instructions for contributing.
 
