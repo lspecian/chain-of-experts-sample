@@ -106,3 +106,28 @@ export interface LLMProviderConfig {
   batcherOptions?: RequestBatcherOptions;
   [key: string]: any;
 }
+
+/**
+ * Per-expert LLM configuration
+ */
+export interface ExpertLLMConfig {
+  expertName: string;
+  provider?: string;
+  model?: string;
+  fallbackProvider?: string;
+  fallbackModel?: string;
+  selectionStrategy?: string;
+  maxCost?: number;
+  priority?: 'speed' | 'quality' | 'cost' | 'balanced';
+  [key: string]: any;
+}
+
+/**
+ * Extended configuration for LLM providers with per-expert settings
+ */
+export interface ExtendedLLMConfig {
+  providers: LLMProviderConfig[];
+  defaultProvider: string;
+  defaultSelectionStrategy?: string;
+  expertConfigs?: ExpertLLMConfig[];
+}

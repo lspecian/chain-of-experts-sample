@@ -1,6 +1,6 @@
 # Chain of Experts Application [EXPERIMENTATION]
 
-This repository contains a TypeScript implementation of a "Chain of Experts" (CoE) LLM application featuring dynamic expert management, resilient processing with retries, multi-cloud deployment using Terragrunt/Terraform (AWS primary, GCP optional), and observability using Langfuse.
+This repository contains a TypeScript implementation of a "Chain of Experts" (CoE) LLM application featuring dynamic expert management, resilient processing with retries, cloud deployment using Terragrunt/Terraform (AWS primary, GCP optional), and observability using Langfuse.
 
 It's a experimentional project, not menat to be fully functional.
 
@@ -11,7 +11,7 @@ The application implements a Chain of Experts pattern where multiple specialized
 -   **Dynamic Expert Management**: A UI allows creating, configuring, and removing custom experts at runtime.
 -   **Resilient Processing**: Includes retry logic with exponential backoff for handling transient errors during expert execution.
 -   **Parallel Execution**: Supports running experts concurrently for tasks that allow parallel processing (e.g., processing multiple inputs independently).
--   **Modular LLM Interaction**: A dedicated module handles interactions with different LLM providers (OpenAI, Gemini).
+-   **Multi-Provider LLM Support**: A flexible abstraction layer supports multiple LLM providers (OpenAI, Gemini) with provider selection strategies and per-expert configurations.
 -   **Vector Database Integration**: Uses ChromaDB for document retrieval (can be extended).
 -   **Multi-Cloud Deployment**: Infrastructure managed by Terragrunt and Terraform modules for AWS (primary) and GCP (optional).
 -   **Observability**: Integrated with Langfuse for detailed tracing and monitoring of chain executions and LLM calls.
@@ -20,7 +20,7 @@ The default chain includes:
 1.  **Data Retrieval Expert**: Retrieves relevant documents.
 2.  **LLM Summarization Expert**: Summarizes retrieved documents.
 
-See the [Architecture Guide](docs/architecture.md) for more details.
+See the [Architecture Guide](docs/architecture.md) and [LLM Providers Guide](docs/llm_providers.md) for more details.
 
 ## Prerequisites
 
@@ -54,6 +54,7 @@ See the [Architecture Guide](docs/architecture.md) for more details.
 
     # LLM Provider Configuration
     DEFAULT_LLM_PROVIDER=openai # Options: openai, gemini
+    DEFAULT_LLM_STRATEGY=fallback-default # Provider selection strategy
 
     # OpenAI Configuration
     OPENAI_API_KEY=your_openai_api_key
@@ -62,6 +63,15 @@ See the [Architecture Guide](docs/architecture.md) for more details.
     # Google Gemini Configuration (Optional)
     GOOGLE_API_KEY=your_gemini_api_key
     GEMINI_MODEL=gemini-1.5-pro # Options: gemini-1.5-pro, gemini-1.5-flash, gemini-1.0-pro
+
+    # Per-Expert LLM Configuration (Optional)
+    SUMMARIZATION_PROVIDER=openai # Provider for summarization expert
+    SUMMARIZATION_MODEL=gpt-4o # Model for summarization expert
+    SUMMARIZATION_STRATEGY=fallback-default # Strategy for summarization expert
+
+    QUERY_REFORMULATION_PROVIDER=openai # Provider for query reformulation expert
+    QUERY_REFORMULATION_MODEL=gpt-4o # Model for query reformulation expert
+    QUERY_REFORMULATION_STRATEGY=quality-based # Strategy for query reformulation expert
 
     # Optional: For local Terraform testing (if applicable)
     # AWS_ACCESS_KEY_ID=...
@@ -228,6 +238,33 @@ The application uses ChromaDB as a vector database for storing and retrieving do
 ### Adding Custom Documents
 
 To add your own documents to the vector database, modify the `sampleDocuments` array in `src/vectordb/populateDb.ts` or create a new script that uses the `addDocuments` function from `src/vectordb/chromaClient.ts`.
+
+## LLM Provider Selection Strategies
+
+The application supports multiple LLM providers with different selection strategies:
+
+### Available Strategies
+
+- **Default Strategy**: Uses the preferred provider if specified, otherwise uses the first available provider.
+- **Fallback Strategy**: Tries the primary provider first, then falls back to other providers if the primary fails.
+- **Cost-Based Strategy**: Selects the cheapest provider that meets the requirements.
+- **Quality-Based Strategy**: Selects the highest quality provider for the specific task.
+
+### Per-Expert Configuration
+
+Each expert can be configured to use a specific LLM provider, model, and selection strategy:
+
+```json
+{
+  "expertName": "llm-summarization",
+  "provider": "openai",
+  "model": "gpt-4o",
+  "selectionStrategy": "fallback-default",
+  "priority": "quality"
+}
+```
+
+See the [LLM Providers Guide](docs/llm_providers.md) for detailed configuration options and implementation details.
 
 ## Testing
 

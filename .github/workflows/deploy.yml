@@ -124,10 +124,10 @@ jobs:
            # Pass sensitive vars like secret key via TF_VAR env var if needed and not using Secrets Manager directly in TF
            TF_VAR_langfuse_secret_key: ${{ secrets.LANGFUSE_SECRET_KEY }} 
 
-  # TODO: Add deploy-azure and deploy-gcp jobs similarly
-  # These would need adjustments to:
-  # - Use Azure/GCP credential actions
-  # - Log in to ACR/Artifact Registry
-  # - Push images to ACR/Artifact Registry
+  # TODO: Add deploy-gcp job similarly
+  # This would need adjustments to:
+  # - Use GCP credential actions
+  # - Log in to Artifact Registry
+  # - Push images to Artifact Registry
   # - Run terraform init/apply potentially in different working directories or with different target files/workspaces
   #   if the environment configuration is split per cloud.

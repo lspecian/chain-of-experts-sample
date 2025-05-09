@@ -1,0 +1,98 @@
+:root {
+  --dashboard-text-color: #333;
+  --dashboard-h1-color: #333;
+  --metric-card-bg: #f9f9f9;
+  --metric-card-border: #ddd;
+  --metric-card-h2-color: #555;
+  --metric-card-p-color: #007bff;
+  --list-container-bg: #fff;
+  --list-container-border: #eee;
+  --list-container-h2-color: #333;
+  --list-container-h2-border: #007bff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --dashboard-text-color: #f0f0f0;
+    --dashboard-h1-color: #f0f0f0;
+    --metric-card-bg: #3a3a3a;
+    --metric-card-border: #555;
+    --metric-card-h2-color: #ccc;
+    --metric-card-p-color: #58a6ff; /* Lighter blue for dark mode */
+    --list-container-bg: #2a2a2a;
+    --list-container-border: #444;
+    --list-container-h2-color: #f0f0f0;
+    --list-container-h2-border: #58a6ff;
+  }
+}
+
+.expert-dashboard {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  color: var(--dashboard-text-color);
+}
+
+.expert-dashboard h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: var(--dashboard-h1-color);
+}
+
+.dashboard-metrics {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 30px;
+  gap: 20px; /* Adds space between cards */
+}
+
+.metric-card {
+  background-color: var(--metric-card-bg);
+  border: 1px solid var(--metric-card-border);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  flex-grow: 1; /* Allows cards to grow and fill space */
+  min-width: 150px; /* Ensures cards have a minimum width */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card h2 {
+  margin-top: 0;
+  font-size: 1.2em;
+  color: var(--metric-card-h2-color);
+}
+
+.metric-card p {
+  font-size: 2em;
+  font-weight: bold;
+  color: var(--metric-card-p-color);
+  margin: 10px 0 0 0;
+}
+
+.expert-list-container {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: var(--list-container-bg);
+  border: 1px solid var(--list-container-border);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.expert-list-container h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--list-container-h2-color);
+  border-bottom: 2px solid var(--list-container-h2-border);
+  padding-bottom: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .dashboard-metrics {
+    flex-direction: column;
+  }
+
+  .metric-card {
+    margin-bottom: 15px; /* Add some space between stacked cards */
+  }
+}

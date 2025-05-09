@@ -9,6 +9,7 @@ import { json } from 'body-parser'; // Import body-parser
 import { v4 as uuidv4 } from 'uuid';
 import { ChainManager, getLangfuseClient } from './chain/chainManager';
 import { ExpertRegistry } from './experts';
+import { getExpertByName, getExpertById } from './storage/expertStorage';
 import { configPromise, getConfig } from './config';
 import { logger } from './utils/logger';
 import { ChainContext, ChainInput, ChainOptions, IntermediateResult } from './chain/types'; // Import IntermediateResult
@@ -84,8 +85,24 @@ async function startServer() {
   app.get('/api/experts', (req, res) => {
     try {
       const experts = ExpertRegistry.getAllExpertConfigs();
+      
+      // Add additional metadata for frontend display
+      const enhancedExperts = experts.map(expert => {
+        const storedExpert = getExpertByName(expert.name);
+        return {
+          ...expert,
+          id: storedExpert?.id || '',
+          isBuiltIn: storedExpert?.isBuiltIn || false,
+          createdAt: storedExpert?.createdAt || '',
+          updatedAt: storedExpert?.updatedAt || ''
+        };
+      });
+      
       logger.info('Experts list requested', { count: experts.length });
-      res.json({ experts });
+      res.json({
+        experts: enhancedExperts,
+        count: enhancedExperts.length
+      });
     } catch (error) {
       // Handle unknown error type
       const errorObj = error instanceof Error ? error : undefined;
@@ -95,18 +112,41 @@ async function startServer() {
   });
 
   // API endpoint to get a specific expert configuration
-  app.get('/api/experts/:name', (req, res) => {
+  app.get('/api/experts/:id', (req, res) => {
     try {
-      const expertName = req.params.name;
-      const expertConfig = ExpertRegistry.getExpertConfig(expertName);
+      const expertId = req.params.id;
+      let expertConfig;
       
-      if (!expertConfig) {
-        logger.warn(`Expert not found: ${expertName}`);
-        return res.status(404).json({ error: `Expert '${expertName}' not found` });
+      // Check if the ID is a name or an actual ID
+      if (expertId.startsWith('builtin-') || expertId.length > 10) {
+        // It's likely an ID
+        const storedExpert = getExpertById(expertId);
+        if (storedExpert) {
+          expertConfig = ExpertRegistry.getExpertConfig(storedExpert.name);
+        }
+      } else {
+        // Treat it as a name
+        expertConfig = ExpertRegistry.getExpertConfig(expertId);
       }
       
-      logger.info(`Expert configuration requested: ${expertName}`);
-      res.json({ expert: expertConfig });
+      if (!expertConfig) {
+        logger.warn(`Expert not found: ${expertId}`);
+        return res.status(404).json({ error: `Expert '${expertId}' not found` });
+      }
+      
+      // Get additional metadata from storage
+      const storedExpert = getExpertByName(expertConfig.name);
+      
+      logger.info(`Expert configuration requested: ${expertConfig.name}`);
+      res.json({
+        expert: {
+          ...expertConfig,
+          id: storedExpert?.id || '',
+          isBuiltIn: storedExpert?.isBuiltIn || false,
+          createdAt: storedExpert?.createdAt || '',
+          updatedAt: storedExpert?.updatedAt || ''
+        }
+      });
     } catch (error) {
       const errorObj = error instanceof Error ? error : undefined;
       logger.error('Error getting expert configuration', errorObj);
@@ -117,10 +157,17 @@ async function startServer() {
   // API endpoint to register a new expert
   app.post('/api/experts', (req, res) => {
     try {
-      const { name, description, parameters } = req.body;
+      const { name, description, parameters, metadata, type = 'custom' } = req.body;
       
       if (!name) {
         return res.status(400).json({ error: 'Expert name is required' });
+      }
+      
+      // Validate name format
+      if (!/^[a-z0-9-]+$/.test(name)) {
+        return res.status(400).json({
+          error: 'Expert name must contain only lowercase letters, numbers, and hyphens'
+        });
       }
       
       // Check if expert already exists
@@ -129,26 +176,28 @@ async function startServer() {
         return res.status(409).json({ error: `Expert '${name}' already exists` });
       }
       
-      // Create a simple factory function for a custom expert
-      const factory = () => {
-        // This is a placeholder implementation
-        // In a real application, you would create a proper expert instance
-        // based on the provided configuration
+      // Create a factory function for the custom expert
+      const factory = (params?: any) => {
+        // Create a custom expert instance
         const customExpert: any = {
           getName: () => name,
-          getType: () => 'custom',
+          getType: () => type,
           getMetadata: () => ({
             version: '1.0.0',
             description: description || `Custom expert: ${name}`,
-            tags: ['custom'],
-            createdAt: new Date().toISOString()
+            tags: [type],
+            createdAt: new Date().toISOString(),
+            ...(metadata || {})
           }),
+          getParameters: () => params || parameters || {},
+          setParameters: (newParams: any) => {
+            // This would be implemented in a real expert
+          },
           process: async (input: any, context: any, trace: any) => {
             // This is a placeholder implementation
-            // In a real application, you would implement proper processing logic
             return {
               result: `Custom expert '${name}' processed input: ${JSON.stringify(input)}`,
-              parameters: parameters || {}
+              parameters: params || parameters || {}
             };
           }
         };
@@ -160,13 +209,28 @@ async function startServer() {
         name,
         factory,
         description: description || `Custom expert: ${name}`,
-        parameters: parameters || {}
+        parameters: parameters || {},
+        metadata: {
+          version: '1.0.0',
+          tags: [type],
+          ...(metadata || {})
+        }
       });
+      
+      // Get the newly registered expert with storage metadata
+      const newExpert = ExpertRegistry.getExpertConfig(name);
+      const storedExpert = getExpertByName(name);
       
       logger.info(`New expert registered: ${name}`);
       res.status(201).json({
         message: `Expert '${name}' registered successfully`,
-        expert: ExpertRegistry.getExpertConfig(name)
+        expert: {
+          ...newExpert,
+          id: storedExpert?.id || '',
+          isBuiltIn: storedExpert?.isBuiltIn || false,
+          createdAt: storedExpert?.createdAt || '',
+          updatedAt: storedExpert?.updatedAt || ''
+        }
       });
     } catch (error) {
       const errorObj = error instanceof Error ? error : undefined;
@@ -176,31 +240,71 @@ async function startServer() {
   });
 
   // API endpoint to update an expert
-  app.put('/api/experts/:name', (req, res) => {
+  app.put('/api/experts/:id', (req, res) => {
     try {
-      const expertName = req.params.name;
-      const { description, parameters } = req.body;
+      const expertId = req.params.id;
+      const { description, parameters, metadata } = req.body;
+      
+      // Find the expert by ID or name
+      let expertName;
+      let storedExpert;
+      
+      if (expertId.startsWith('builtin-') || expertId.length > 10) {
+        // It's likely an ID
+        storedExpert = getExpertById(expertId);
+        if (storedExpert) {
+          expertName = storedExpert.name;
+        }
+      } else {
+        // Treat it as a name
+        expertName = expertId;
+        storedExpert = getExpertByName(expertName);
+      }
       
       // Check if expert exists
-      const existingExpert = ExpertRegistry.getExpertConfig(expertName);
-      if (!existingExpert) {
-        return res.status(404).json({ error: `Expert '${expertName}' not found` });
+      const existingExpert = expertName ? ExpertRegistry.getExpertConfig(expertName) : undefined;
+      if (!existingExpert || !storedExpert) {
+        return res.status(404).json({ error: `Expert '${expertId}' not found` });
+      }
+      
+      // Check if expert is a built-in expert
+      if (storedExpert.isBuiltIn) {
+        return res.status(403).json({ error: `Cannot update built-in expert '${expertName}'` });
       }
       
       // Create updated expert configuration
       const updatedConfig = {
         ...existingExpert,
-        description: description || existingExpert.description,
-        parameters: parameters || existingExpert.parameters
+        description: description !== undefined ? description : existingExpert.description,
+        parameters: parameters !== undefined ? parameters : existingExpert.parameters,
+        metadata: metadata !== undefined ? {
+          ...existingExpert.metadata,
+          ...metadata,
+          updatedAt: new Date().toISOString()
+        } : existingExpert.metadata
       };
       
       // Register the updated expert (this will overwrite the existing one)
       ExpertRegistry.register(updatedConfig);
       
+      // Get the updated expert with storage metadata
+      let updatedExpert = null;
+      let updatedStoredExpert = null;
+      if (expertName) {
+        updatedExpert = ExpertRegistry.getExpertConfig(expertName);
+        updatedStoredExpert = getExpertByName(expertName);
+      }
+      
       logger.info(`Expert updated: ${expertName}`);
       res.json({
         message: `Expert '${expertName}' updated successfully`,
-        expert: ExpertRegistry.getExpertConfig(expertName)
+        expert: {
+          ...updatedExpert,
+          id: updatedStoredExpert?.id || '',
+          isBuiltIn: updatedStoredExpert?.isBuiltIn || false,
+          createdAt: updatedStoredExpert?.createdAt || '',
+          updatedAt: updatedStoredExpert?.updatedAt || ''
+        }
       });
     } catch (error) {
       const errorObj = error instanceof Error ? error : undefined;
@@ -210,18 +314,33 @@ async function startServer() {
   });
 
   // API endpoint to delete an expert
-  app.delete('/api/experts/:name', (req, res) => {
+  app.delete('/api/experts/:id', (req, res) => {
     try {
-      const expertName = req.params.name;
+      const expertId = req.params.id;
+      
+      // Find the expert by ID or name
+      let expertName;
+      let storedExpert;
+      
+      if (expertId.startsWith('builtin-') || expertId.length > 10) {
+        // It's likely an ID
+        storedExpert = getExpertById(expertId);
+        if (storedExpert) {
+          expertName = storedExpert.name;
+        }
+      } else {
+        // Treat it as a name
+        expertName = expertId;
+        storedExpert = getExpertByName(expertName);
+      }
       
       // Check if expert exists
-      const existingExpert = ExpertRegistry.getExpertConfig(expertName);
-      if (!existingExpert) {
-        return res.status(404).json({ error: `Expert '${expertName}' not found` });
+      if (!expertName || !storedExpert) {
+        return res.status(404).json({ error: `Expert '${expertId}' not found` });
       }
       
       // Check if expert is a built-in expert
-      if (['data-retrieval', 'llm-summarization'].includes(expertName)) {
+      if (storedExpert.isBuiltIn) {
         return res.status(403).json({ error: `Cannot delete built-in expert '${expertName}'` });
       }
       
@@ -230,7 +349,10 @@ async function startServer() {
       
       if (result) {
         logger.info(`Expert deleted: ${expertName}`);
-        res.json({ message: `Expert '${expertName}' deleted successfully` });
+        res.json({
+          message: `Expert '${expertName}' deleted successfully`,
+          id: storedExpert.id
+        });
       } else {
         logger.warn(`Failed to delete expert: ${expertName}`);
         res.status(500).json({ error: `Failed to delete expert '${expertName}'` });
@@ -239,6 +361,51 @@ async function startServer() {
       const errorObj = error instanceof Error ? error : undefined;
       logger.error('Error deleting expert', errorObj);
       res.status(500).json({ error: 'Failed to delete expert' });
+    }
+  });
+  
+  // API endpoint to get expert chain visualization data
+  app.get('/api/experts/chain/visualization', (req, res) => {
+    try {
+      const experts = ExpertRegistry.getAllExpertConfigs();
+      
+      // Create nodes for each expert
+      const nodes = experts.map((expert, index) => {
+        const storedExpert = getExpertByName(expert.name);
+        return {
+          id: expert.name,
+          type: expert.metadata?.tags?.[0] || 'custom',
+          label: expert.name,
+          description: expert.description || '',
+          isBuiltIn: storedExpert?.isBuiltIn || false,
+          parameters: expert.parameters || {},
+          position: { x: 100 + (index % 3) * 250, y: 100 + Math.floor(index / 3) * 150 }
+        };
+      });
+      
+      // Create edges based on expert dependencies
+      // For now, we'll create a simple sequential chain
+      const edges = [];
+      for (let i = 0; i < nodes.length - 1; i++) {
+        edges.push({
+          id: `e${i}-${i+1}`,
+          source: nodes[i].id,
+          target: nodes[i+1].id,
+          animated: true,
+          label: 'output',
+        });
+      }
+      
+      logger.info('Expert chain visualization data requested');
+      res.json({
+        nodes,
+        edges,
+        layout: 'horizontal'
+      });
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : undefined;
+      logger.error('Error getting expert chain visualization data', errorObj);
+      res.status(500).json({ error: 'Failed to retrieve expert chain visualization data' });
     }
   });
 

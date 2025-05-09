@@ -1,7 +1,7 @@
 import { logger } from './utils/logger';
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 
-import { LLMProviderConfig } from './llm/types';
+import { LLMProviderConfig, ExpertLLMConfig, ExtendedLLMConfig } from './llm/types';
 
 // --- Configuration Interface ---
 interface AppConfig {
@@ -13,10 +13,7 @@ interface AppConfig {
     publicKey: string;
     baseUrl: string;
   };
-  llm: {
-    providers: LLMProviderConfig[];
-    defaultProvider: string;
-  };
+  llm: ExtendedLLMConfig;
   // Legacy config - will be deprecated
   openai: {
     apiKey: string;
@@ -118,7 +115,41 @@ async function loadConfig(): Promise<AppConfig> {
           apiKey: geminiSecretValue || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || ''
         }
       ],
-      defaultProvider: process.env.DEFAULT_LLM_PROVIDER || 'openai'
+      defaultProvider: process.env.DEFAULT_LLM_PROVIDER || 'openai',
+      defaultSelectionStrategy: process.env.DEFAULT_LLM_STRATEGY || 'fallback-default',
+      // Per-expert LLM configurations
+      expertConfigs: [
+        {
+          expertName: 'llm-summarization',
+          provider: process.env.SUMMARIZATION_PROVIDER || 'openai',
+          model: process.env.SUMMARIZATION_MODEL || 'gpt-4o',
+          fallbackProvider: 'gemini',
+          fallbackModel: 'gemini-1.5-pro',
+          selectionStrategy: process.env.SUMMARIZATION_STRATEGY || 'fallback-default',
+          priority: 'quality'
+        },
+        {
+          expertName: 'query-reformulation',
+          provider: process.env.QUERY_REFORMULATION_PROVIDER || 'openai',
+          model: process.env.QUERY_REFORMULATION_MODEL || 'gpt-4o',
+          selectionStrategy: process.env.QUERY_REFORMULATION_STRATEGY || 'quality-based',
+          priority: 'quality'
+        },
+        {
+          expertName: 'fact-checking',
+          provider: process.env.FACT_CHECKING_PROVIDER || 'gemini',
+          model: process.env.FACT_CHECKING_MODEL || 'gemini-1.5-pro',
+          selectionStrategy: process.env.FACT_CHECKING_STRATEGY || 'quality-based',
+          priority: 'quality'
+        },
+        {
+          expertName: 'response-formatting',
+          provider: process.env.RESPONSE_FORMATTING_PROVIDER,
+          model: process.env.RESPONSE_FORMATTING_MODEL,
+          selectionStrategy: process.env.RESPONSE_FORMATTING_STRATEGY || 'cost-based',
+          priority: 'speed'
+        }
+      ]
     },
     // Legacy config - will be deprecated
     openai: {

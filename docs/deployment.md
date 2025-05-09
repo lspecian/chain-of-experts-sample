@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide explains how to deploy the Chain of Experts application to AWS and GCP using Terragrunt and the provided Terraform modules.
+This guide explains how to deploy the Chain of Experts application to AWS (primary) and GCP (optional) using Terragrunt and the provided Terraform modules.
 
 ## Prerequisites
 

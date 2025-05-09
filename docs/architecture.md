@@ -32,9 +32,11 @@ The application is built using TypeScript and Node.js with Express for the API l
         -   `expert2.ts`: `LLMSummarizationExpert` implementation (uses LLM module).
         -   `index.ts`: Implements the `ExpertRegistry` for dynamic expert management.
     -   **`llm/`**: Module for LLM interactions.
-        -   `types.ts`: Defines `LLMProvider` interface and common request/response types.
-        -   `factory.ts`: Implements `LLMProviderFactory` singleton.
+        -   `types.ts`: Defines `LLMProvider` interface, `ExpertLLMConfig`, and common request/response types.
+        -   `factory.ts`: Implements `LLMProviderFactory` singleton for managing provider instances.
         -   `openai.ts`, `gemini.ts`: Concrete provider implementations.
+        -   `providerStrategy.ts`: Implements provider selection strategies (Default, Fallback, Cost-Based, Quality-Based).
+        -   `requestBatcher.ts`: Implements request batching for optimizing LLM API calls.
     -   **`utils/`**: Utility functions (e.g., `logger.ts`).
 -   **`frontend/`**: React frontend application.
     -   `App.tsx`: Main application component with chat interface.
@@ -46,7 +48,7 @@ The application is built using TypeScript and Node.js with Express for the API l
 
 ## 3. Infrastructure Architecture (Terragrunt + Terraform Modules)
 
-Infrastructure is defined using Terraform modules and orchestrated using Terragrunt for better organization and DRY principles, supporting multi-cloud deployment (AWS primary, GCP optional).
+Infrastructure is defined using Terraform modules and orchestrated using Terragrunt for better organization and DRY principles, supporting cloud deployment on AWS (primary) and GCP (optional).
 
 -   **`infra/`**: Root directory for infrastructure as code.
     -   **`terraform/`**: Contains Terraform configurations.
@@ -78,3 +80,23 @@ Langfuse is integrated for end-to-end observability of the CoE application.
     -   **Scores:** Can be attached manually (e.g., via a feedback API) or automatically (via LLM-as-a-Judge) to traces or observations to track quality.
 -   **Monitoring:** Dashboards (Task #13) and automated evaluations (Task #14) are configured within the Langfuse UI to provide insights into performance, cost, and quality.
 -   **Standards:** Langfuse aligns with OpenTelemetry, allowing potential integration with broader observability ecosystems.
+
+## 5. Multi-Provider LLM Support
+
+The application implements a flexible abstraction layer for supporting multiple LLM providers with advanced selection strategies.
+
+-   **Provider Interface:** The [`LLMProvider`](../src/llm/types.ts:63) interface defines a common API for all LLM providers, including methods for creating completions and embeddings.
+-   **Provider Implementations:** Concrete implementations for different LLM providers:
+    -   [`OpenAIProvider`](../src/llm/openai.ts:15): Implements the OpenAI API.
+    -   [`GeminiProvider`](../src/llm/gemini.ts:16): Implements the Google Gemini API.
+-   **Provider Factory:** The [`LLMProviderFactory`](../src/llm/factory.ts:10) singleton manages provider instances and provides methods for registering, retrieving, and initializing providers.
+-   **Selection Strategies:** The [`ProviderSelectionStrategy`](../src/llm/providerStrategy.ts:6) interface defines strategies for selecting providers:
+    -   [`DefaultProviderStrategy`](../src/llm/providerStrategy.ts:28): Uses the preferred provider or the first available.
+    -   [`FallbackProviderStrategy`](../src/llm/providerStrategy.ts:52): Tries providers in order until one succeeds.
+    -   [`CostBasedProviderStrategy`](../src/llm/providerStrategy.ts:118): Selects the cheapest provider that meets requirements.
+    -   [`QualityBasedProviderStrategy`](../src/llm/providerStrategy.ts:177): Selects the highest quality provider for the task.
+-   **Per-Expert Configuration:** The [`ExpertLLMConfig`](../src/llm/types.ts:110) interface allows configuring different LLM providers for different experts.
+-   **Request Batching:** The [`RequestBatcher`](../src/llm/requestBatcher.ts:27) implements the `LLMProvider` interface and batches requests to optimize API calls.
+-   **Configuration:** The [`config.ts`](../src/config.ts:1) file loads and validates LLM provider configurations from environment variables or AWS Secrets Manager.
+
+See the [LLM Providers Guide](llm_providers.md) for detailed configuration options and implementation details.

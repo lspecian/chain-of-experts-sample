@@ -6,6 +6,7 @@ import ChainVisualizer from './components/ChainVisualizer';
 import FeedbackPanel from './components/FeedbackPanel';
 import ExpertParameterConfig from './components/ExpertParameterConfig';
 import ChainResultsViewer from './components/ChainResultsViewer';
+import { ExpertDashboard } from './components/ExpertManagement'; // Added import
 
 // Define types for API interaction
 interface ChainApiInput {
@@ -163,6 +164,7 @@ function App() {
     };
   }, []);
   const [showExpertManager, setShowExpertManager] = useState<boolean>(false);
+  const [showExpertDashboard, setShowExpertDashboard] = useState<boolean>(false); // Added state for dashboard
   const [showChainVisualizer, setShowChainVisualizer] = useState<boolean>(true);
   const [streamingProgress, setStreamingProgress] = useState<number>(0);
   const [skipCache, setSkipCache] = useState<boolean>(false);
@@ -565,6 +567,9 @@ function App() {
                   >
                     {showExpertManager ? 'Hide Manager' : 'Manage Experts'}
                   </button>
+                  <button className="manage-experts-btn" onClick={() => setShowExpertDashboard(!showExpertDashboard)}>
+                    {showExpertDashboard ? 'Hide Dashboard' : 'Show Dashboard'}
+                  </button>
                 </div>
                 
                 {/* Chain Visualizer Toggle */}
@@ -678,108 +683,114 @@ function App() {
       
       {/* Main Chat Area */}
       <div className="chat-container">
-        <div className="chat-header">
-          <button 
-            className="toggle-sidebar-btn"
-            onClick={() => {
-              const newValue = !sidebarVisible;
-              console.log("Toggling sidebar:", newValue);
-              setSidebarVisible(newValue);
-            }}
-            aria-label="Toggle sidebar"
-          >
-            {sidebarVisible ? '◀' : '▶'}
-          </button>
-          <h2>Chain of Experts Chat</h2>
-        </div>
-        
-        <div className="messages-container">
-          {messages.map((message) => (
-            <div 
-              key={message.id} 
-              className={`message ${message.role === 'user' ? 'user-message' : 
-                message.role === 'assistant' ? 'assistant-message' : 'system-message'}`}
-            >
-              <div className="message-content">
-                {message.role === 'assistant' && message.resultData ? (
-                  <ChainResultsViewer
-                    data={message.resultData}
-                    darkMode={darkMode}
-                  />
-                ) : (
-                  message.content
-                )}
-              </div>
-              <div className="message-timestamp">
-                {new Date(message.timestamp).toLocaleTimeString()}
-              </div>
+        {showExpertDashboard ? (
+          <ExpertDashboard />
+        ) : (
+          <>
+            <div className="chat-header">
+              <button
+                className="toggle-sidebar-btn"
+                onClick={() => {
+                  const newValue = !sidebarVisible;
+                  console.log("Toggling sidebar:", newValue);
+                  setSidebarVisible(newValue);
+                }}
+                aria-label="Toggle sidebar"
+              >
+                {sidebarVisible ? '◀' : '▶'}
+              </button>
+              <h2>Chain of Experts Chat</h2>
             </div>
-          ))}
-          {loading && (
-            <div className="message system-message">
-              {useStreaming && streamingProgress > 0 ? (
-                <div className="streaming-progress">
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-bar-fill" 
-                      style={{ width: `${streamingProgress}%` }}
-                    ></div>
+
+            <div className="messages-container">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`message ${message.role === 'user' ? 'user-message' :
+                    message.role === 'assistant' ? 'assistant-message' : 'system-message'}`}
+                >
+                  <div className="message-content">
+                    {message.role === 'assistant' && message.resultData ? (
+                      <ChainResultsViewer
+                        data={message.resultData}
+                        darkMode={darkMode}
+                      />
+                    ) : (
+                      message.content
+                    )}
                   </div>
-                  <div className="progress-text">
-                    Processing: {Math.round(streamingProgress)}%
+                  <div className="message-timestamp">
+                    {new Date(message.timestamp).toLocaleTimeString()}
                   </div>
                 </div>
-              ) : (
-                <div className="loading-indicator">
-                  <div className="dot"></div>
-                  <div className="dot"></div>
-                  <div className="dot"></div>
+              ))}
+              {loading && (
+                <div className="message system-message">
+                  {useStreaming && streamingProgress > 0 ? (
+                    <div className="streaming-progress">
+                      <div className="progress-bar">
+                        <div
+                          className="progress-bar-fill"
+                          style={{ width: `${streamingProgress}%` }}
+                        ></div>
+                      </div>
+                      <div className="progress-text">
+                        Processing: {Math.round(streamingProgress)}%
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="loading-indicator">
+                      <div className="dot"></div>
+                      <div className="dot"></div>
+                      <div className="dot"></div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Feedback Panel - Show only when processing is completed and we have a traceId */}
+              {processingStatus === 'completed' && currentTraceId && (
+                <div className="feedback-container">
+                  <FeedbackPanel
+                    traceId={currentTraceId}
+                    darkMode={darkMode}
+                    onFeedbackSubmitted={() => console.log("Feedback submitted for trace:", currentTraceId)}
+                  />
                 </div>
               )}
             </div>
-          )}
-          
-          {/* Feedback Panel - Show only when processing is completed and we have a traceId */}
-          {processingStatus === 'completed' && currentTraceId && (
-            <div className="feedback-container">
-              <FeedbackPanel 
-                traceId={currentTraceId} 
-                darkMode={darkMode}
-                onFeedbackSubmitted={() => console.log("Feedback submitted for trace:", currentTraceId)}
+
+            <div className="message-input-container">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Type your message here..."
+                disabled={loading}
+                onKeyPress={(e) => {
+                  console.log("Key pressed:", e.key);
+                  if (e.key === 'Enter' && query.trim() && !loading) {
+                    console.log("Enter key pressed, calling handleSendMessage");
+                    handleSendMessage();
+                  }
+                }}
               />
+              <button
+                type="button"
+                disabled={loading || !query.trim()}
+                className="send-button"
+                onClick={() => {
+                  console.log("Send button clicked");
+                  console.log("Query:", query);
+                  console.log("Selected experts:", selectedExperts);
+                  handleSendMessage();
+                }}
+              >
+                Send
+              </button>
             </div>
-          )}
-        </div>
-        
-        <div className="message-input-container">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type your message here..."
-            disabled={loading}
-            onKeyPress={(e) => {
-              console.log("Key pressed:", e.key);
-              if (e.key === 'Enter' && query.trim() && !loading) {
-                console.log("Enter key pressed, calling handleSendMessage");
-                handleSendMessage();
-              }
-            }}
-          />
-          <button
-            type="button"
-            disabled={loading || !query.trim()}
-            className="send-button"
-            onClick={() => {
-              console.log("Send button clicked");
-              console.log("Query:", query);
-              console.log("Selected experts:", selectedExperts);
-              handleSendMessage();
-            }}
-          >
-            Send
-          </button>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

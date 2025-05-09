@@ -12,6 +12,19 @@ export { GeminiProvider } from './gemini';
 // Export factory
 export { getLLMProviderFactory, LLMProviderFactory } from './factory';
 
+// Export provider selection strategies
+export {
+  ProviderSelectionStrategy,
+  ProviderSelectionContext,
+  DefaultProviderStrategy,
+  FallbackProviderStrategy,
+  CostBasedProviderStrategy,
+  QualityBasedProviderStrategy,
+  ProviderStrategyFactory,
+  getProviderStrategyFactory,
+  selectProvider
+} from './providerStrategy';
+
 // Convenience function to get a provider
 import { getLLMProviderFactory } from './factory';
 import { LLMProvider, LLMProviderConfig } from './types';
